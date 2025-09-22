@@ -1,0 +1,53 @@
+@import 'tailwindcss';
+
+@theme {
+    --text-sm: 12px;
+    --text-md: 14px;
+    --text-lg: 16px;
+    --text-xl: 18px;
+
+    --color-gray-base: #2d3748;
+    --color-gray-light: #66727f;
+    --color-green-base: #48bb78;
+}
+
+body {
+    padding: 0;
+    margin: 0;
+}
+
+.container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+:root {
+    /* Цвета текста */
+    --text-primary: #252525;
+    --text-secondary: #66727f;
+    --text-tertiary: #125a83;
+    --text-muted: #2d3748;
+    --text-inverted: #ffffff;
+    --label-primary: #737c86;
+
+    /*  Цвета фона */
+    --background-primary: #ffffff;
+    --background-secondary: #125a83;
+    --background-tertiary: #25ba37;
+    --background-fourth: #f7fafc;
+    --background-secondary-hover: #1872a6;
+    --background-dark: #000000;
+    --background-yellow: #f2fa0633;
+
+    /* Альтернативный вариант */
+    --logo-primary: #81da67;
+    --logo-secondary: #125a83;
+    --success-checkbox: #20d226;
+    --discount: #48bb78;
+    --pending-status: #ffc13a;
+    --loading-status: #e2ff5f;
+    --success-status: #2cff33;
+    --login-secondary: #25252599;
+    --border-dashed: #94a4b9;
+}

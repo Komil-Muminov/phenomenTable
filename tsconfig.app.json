@@ -1,0 +1,39 @@
+{
+    "compilerOptions": {
+        "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+        "target": "ES2020",
+        "useDefineForClassFields": true,
+        "lib": ["ES2020", "DOM", "DOM.Iterable"],
+        "module": "ESNext",
+        "skipLibCheck": true,
+
+        /* Bundler mode */
+        "moduleResolution": "bundler",
+        "allowImportingTsExtensions": true,
+        "isolatedModules": true,
+        "moduleDetection": "force",
+        "noEmit": true,
+        "jsx": "react-jsx",
+
+        /* Linting */
+        "strict": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noFallthroughCasesInSwitch": true,
+        "noUncheckedSideEffectImports": true,
+        "baseUrl": ".",
+        "paths": {
+            "@types": ["./src/shared/types/index"],
+            "@config": ["./src/shared/config/index"],
+            "@ui": ["./src/shared/ui/index"],
+            "@hooks": ["./src/shared/lib/hooks/index"],
+            "@utils": ["./src/shared/lib/utils/index"],
+            "@entities/*": ["./src/entities/*"],
+            "@widgets/*": ["./src/widgets/*"],
+            "@features/*": ["./src/features/*"],
+            "@lib": ["./src/shared/lib/index"]
+        },
+        "types": ["node"]
+    },
+    "include": ["src/**/*", "tailwind.config.js"]
+}

@@ -1,0 +1,529 @@
+* {
+    box-sizing: border-box;
+    font-family: 'Open Sans', sans-serif !important;
+    border: none;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+.overlay-bg {
+    background-color: #f7fafc;
+    background-image: url('/public/images/main-bg.jpeg');
+    background-size: 100% 340px;
+    background-repeat: no-repeat;
+    min-height: 100vh;
+}
+
+.overlay-bg-abreshim {
+    background-image: url('./assets/abreshim-bg.png');
+    background-repeat: no-repeat;
+    min-height: 100vh;
+    background-size: 100% 340px;
+    background-color: #f7fafc;
+}
+
+.def-content {
+    background-color: white;
+    padding: 24px;
+    border-radius: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px;
+}
+
+.def-input {
+    max-width: 346px;
+    min-width: 326px;
+    padding: 10px 16px;
+}
+
+.button-ui {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background-color: var(--background-secondary);
+    border: 1px solid var(--background-secondary);
+    transition: all 0.3s;
+}
+
+.button-ui:hover {
+    background-color: var(--background-secondary-hover) !important;
+    border-color: var(--background-secondary-hover) !important;
+}
+
+.auth__btn {
+    max-width: 320px;
+    width: 100%;
+    background-color: var(--background-secondary);
+}
+
+.auth__btn:hover {
+    background-color: var(--background-secondary) !important;
+    opacity: 90%;
+    color: #fff;
+}
+
+button:active {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transform: translateY(0.1px);
+    opacity: 0.7;
+    transition: all 0.3s;
+}
+
+/* Кастомные классы */
+.custom-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #737c86;
+}
+
+/* Стили для placeholder Label */
+
+.ant-form-item.custom-form-item-mobile {
+    margin: 0 !important;
+    margin-bottom: 14px !important;
+}
+
+.custom-form-item .ant-form-item-label,
+.custom-main-page-form-item .ant-form-item-label {
+    padding: 0;
+}
+
+.custom-form-item-checked .ant-form-item-label > label {
+    font-size: 14px !important;
+    font-weight: 600;
+    color: var(--label-primary);
+}
+
+.custom-form-item .ant-form-item-label > label,
+.custom-form-item-mobile .ant-form-item-label > label {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--label-primary);
+}
+
+.custom-form-item-mobile .ant-form-item-label > label {
+    font-size: 14px !important;
+}
+
+.custom-main-page-form-item .ant-form-item-label > label {
+    font-size: 16px;
+    color: #252525cc;
+}
+
+/* Стили для placholder в Input и DatePicker */
+.custom-form-item input::placeholder,
+.custom-main-page-form-item input::placeholder {
+    font-size: 16px;
+    color: #2222224d;
+    font-weight: 400;
+}
+
+.custom-placeholder-style input::placeholder {
+    font-size: 14px;
+}
+
+/* Стили для Select */
+.custom-form-item .ant-select,
+.custom-main-page-form-item .ant-select {
+    min-height: 40px;
+}
+
+/* Убирает звездочку (required) для всех элементов формы */
+.custom-form-item .ant-form-item-required::before,
+.custom-main-page-form-item .ant-form-item-required::before {
+    content: none !important;
+}
+
+.styled-row {
+    background-color: #f6f6f6;
+}
+
+.styled-row th.ant-table-cell {
+    background-color: #f6f6f6 !important;
+}
+
+.ant-table-cell {
+    color: var(--text-secondary) !important;
+}
+
+th.ant-table-cell {
+    text-transform: uppercase;
+}
+
+th.ant-table-cell {
+    font-weight: 700;
+    background-color: #f6f6f6 !important;
+    border-color: #e2e8f0 !important;
+}
+
+th.ant-table-cell::before {
+    background-color: #e2e8f0 !important;
+}
+
+td.ant-table-cell {
+    font-weight: 600;
+    border-color: #e2e8f0 !important;
+}
+
+.custom-table-registry-more-products-user th.ant-table-cell,
+.custom-table-registry-more-products-user td.ant-table-cell {
+    background-color: var(--background-yellow) !important;
+}
+
+.custom-table-registry-more-products-user .ant-pagination-item,
+.custom-table-registry-more-products-user .ant-select-selector,
+.custom-table-registry-accepted-products th.ant-table-cell {
+    background-color: transparent !important;
+}
+
+.no-margin .ant-table {
+    margin-inline: 0 !important;
+}
+
+/* More products from this user style for Table */
+
+.table-more-products th.ant-table-cell {
+    background-color: #f2fa0633 !important;
+}
+
+.table-more-products .ant-table-cell {
+    background-color: #f2fa0633 !important;
+}
+
+.table-more-products .ant-empty-image svg g ellipse {
+    fill: transparent !important;
+}
+
+.table-more-products .ant-empty-image svg g g path {
+    fill: transparent !important;
+}
+
+/* Стили для меню Menu из Antd */
+
+.warehouse-managers-custom-menu .ant-menu-title-content {
+    color: #fff;
+    font-weight: 600 !important;
+}
+
+.reception-managers-custom-menu .ant-menu-title-content {
+    font-weight: 600 !important;
+}
+
+.warehouse-managers-custom-menu .ant-menu-item-selected::after {
+    border-color: #fff !important;
+}
+
+.warehouse-managers-custom-menu .ant-menu-item:hover::after {
+    border-color: #fff !important;
+}
+
+/* Upload ANTD */
+
+.ant-upload-list-item-done {
+    padding: 15px;
+}
+
+.ant-upload-list {
+    display: flex;
+    max-width: 250px;
+}
+
+.no-card-header-border .ant-card-head {
+    border-bottom: none !important;
+    padding: 0;
+    min-height: auto;
+}
+
+.custom-space-item .ant-space-item {
+    display: flex !important;
+}
+
+.ant-space-item-mobile.ant-space {
+    width: 100% !important;
+}
+
+.ant-space-item-mobile .ant-space-item {
+    width: 100% !important;
+}
+
+/* Убираем * у лейблов */
+.ant-form-item-required::before {
+    content: '';
+    display: none !important;
+}
+/* Просмотр товара на карте и трекинг страница Мои заказы клиента */
+.getMyOrders__tracking-modal .ant-modal-content {
+    padding: 0px 0px 0 24px;
+}
+
+.custom-upload .ant-upload {
+    width: 100% !important;
+    height: 60px !important;
+    border-style: none !important;
+}
+
+@media (max-width: 768px) {
+    .ant-upload {
+        padding: 0 !important;
+    }
+}
+
+.custom-upload .ant-upload-select {
+    border-style: solid !important;
+    border-color: #d9d9d9 !important;
+    transition: all 0.3s !important;
+}
+
+.custom-upload .ant-upload-select:hover {
+    background-color: #c5e7fa !important;
+    border-color: #125a83 !important;
+}
+
+.custom-main-upload-mobile .ant-upload-list {
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.custom-main-upload .ant-upload-list {
+    overflow-x: auto !important;
+    max-width: none !important;
+}
+
+/* Убираем padding из радио на странице менеджер по приемке */
+/* styles.css или .scss */
+.ant-radio-wrapper span.ant-radio + span {
+    padding-inline-start: 0 !important;
+    padding-inline-end: 0 !important;
+    margin-right: 3px;
+}
+
+.ant-radio-wrapper {
+    gap: 7px;
+}
+
+/* ANT COLLAPSE */
+
+.custom-mobile-ant-collapse.ant-collapse {
+    border-radius: 0;
+}
+
+.custom-mobile-ant-collapse .ant-collapse-header {
+    align-items: center !important;
+}
+
+/* SubLinks */
+
+.ant-menu-submenu-title {
+    padding: 10px !important;
+}
+.ant-menu-submenu-title .ant-typography {
+    margin-left: 10px !important;
+}
+
+.submenu__last-child > .ant-menu-item:last-of-type {
+    padding-left: 30px !important;
+}
+
+.submenu__last-child > .ant-menu-item:first-of-type {
+    padding-left: 35px !important;
+}
+
+.submenu__last-child-hidden > .ant-menu-item:last-of-type {
+    display: none !important;
+}
+/* .ant-menu-sub {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: transparent !important;
+} */
+.ant-menu.ant-menu-sub.ant-menu-inline .ant-menu-item a {
+    justify-content: center;
+    font-weight: 500;
+}
+
+/* VIEW MODAL MOBILE */
+
+.mobile-view-modal .ant-modal-content {
+    border-radius: 0 !important;
+}
+
+/* иконка arrow справочника */
+
+.ant-menu-submenu .ant-menu-submenu-arrow::before {
+    background: #1677ff !important;
+}
+
+.ant-menu-submenu .ant-menu-submenu-arrow::after {
+    background: #1677ff !important;
+}
+
+.create-adress-modal .ant-form-item-control-input {
+    display: none !important;
+}
+
+/* CARD */
+
+.custom-ant-card .ant-form-item {
+    margin: 0;
+}
+
+.custom-ant-card .ant-card {
+    margin-top: 0 !important;
+}
+
+@media screen and (min-width: 1024px) {
+    .smartTable-btn {
+        font-size: 6px !important;
+    }
+}
+
+@media screen and (min-width: 1440px) and (max-width: 1820px) {
+    .smartTable-btn {
+        font-size: 10px !important;
+    }
+}
+
+@media screen and (min-width: 1920px) {
+    .smartTable-btn {
+        font-size: 13px !important;
+    }
+}
+
+/* ViewPartiesModal модалка - просмотр партий */
+/* Фон для заголовка таблицы */
+
+.viewParties__content {
+    background: #f2fa0633 !important;
+}
+.viewParties__content .ant-table-thead > tr > th {
+    background: #f2fa0633 !important;
+}
+.viewParties__content .ant-table-tbody > tr:hover > td {
+    background: #f2fa0633 !important;
+}
+
+/* Или уберите фон с контейнера и примените к строкам */
+.viewParties__content .ant-table-tbody > tr {
+    background: #f2fa0633;
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+.viewParties__content .ant-table-tbody > tr:hover {
+    background: rgba(242, 250, 6, 0.913);
+}
+
+/* Просмотр коробки */
+.smartTable-bg-content {
+    background: #a8ae1009;
+}
+
+.view-box-modal-table-content {
+    background: #f2fa0633 !important;
+}
+
+.view-box-modal-table-content .ant-table-thead > tr > th {
+    background: #f2fa0633 !important;
+}
+.view-box-modal-table-content .ant-table-tbody > tr:hover > td {
+    background: #f2fa0633 !important;
+}
+
+.view-box-modal-table-content .ant-table-tbody > tr {
+    background: #f2fa0633;
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+.viewParties__content .ant-table-tbody > tr:hover {
+    background: rgba(242, 250, 6, 0.913);
+}
+
+.viewParties__content .ant-table-expanded-row-fixed {
+    background-color: #f9ff482f !important;
+}
+
+/* ViewPorductModal */
+
+.viewProduct__content {
+    background: #f2fa0633 !important;
+}
+
+.viewProduct__content .ant-table-thead > tr > th {
+    background: #f2fa0633 !important;
+}
+.viewProduct__content .ant-table-tbody > tr:hover > td {
+    background: #f2fa0633 !important;
+}
+
+.viewProduct__content .ant-table-tbody > tr {
+    background: #f2fa0633;
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+.viewProduct__content .ant-table-tbody > tr:hover {
+    background: rgba(242, 250, 6, 0.913);
+}
+
+.viewProduct__content .ant-table-expanded-row-fixed {
+    background-color: #f9ff482f !important;
+}
+
+/* ШРИФТ ЗНАЧЕНИЙ ВНУТРИ КОЛОНОК SMARTABLE */
+.custom-table .ant-table-cell {
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+    font-size: 13px !important;
+}
+.custom-table .ant-typography {
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+    font-size: 14px !important;
+    display: flex;
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+    max-width: 150px !important;
+    gap: 10px;
+}
+
+.adminProfile-menu-text .ant-menu-item {
+    color: #fff !important;
+}
+
+.adminProfile-menu-text .ant-menu-item-selected {
+    color: #fff !important;
+}
+.adminProfile-menu-text .ant-menu-item-selected::after {
+    border-color: #fff !important;
+}
+
+.adminProfile-menu-text .ant-menu-item:hover::after {
+    border-color: #fff !important;
+}
+
+/* ------------- */
+
+.createProduct-tabs-text .ant-menu-item {
+    color: #000 !important;
+    font-weight: 600;
+}
+
+.createProduct-tabs-text .ant-menu-item-selected {
+    color: #000 !important;
+    font-weight: 600;
+}
+.createProduct-tabs-text .ant-menu-item-selected::after {
+    border-color: #1677ff !important;
+}
+
+.createProduct-tabs-text .ant-menu-item:hover::after {
+    border-color: #1677ff !important;
+}
