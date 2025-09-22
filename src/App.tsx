@@ -3,8 +3,7 @@
 // import HomePage from './components/Homepage';
 // import MemberPage from './components/MemberPage';
 import './index.css';
-import { PhenomenTable } from './components/PhenomenTable/PhenomenTable';
-
+import { PhenomenTable } from './Shared/PhenomenTable/PhenomenTable';
 // Тестовые данные сотрудников
 const employeesData = [
     {
