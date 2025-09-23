@@ -264,6 +264,8 @@ const StatusCell: React.FC<{ value: any }> = ({ value }) => {
         pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Ожидание' },
         completed: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Завершено' },
         draft: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Черновик' },
+        true: { bg: 'bg-green-100', text: 'text-green-800', label: 'Да' },
+        false: { bg: 'bg-red-100', text: 'text-red-800', label: 'Нет' },
     };
 
     const config = statusConfig[status as keyof typeof statusConfig] || {
@@ -311,7 +313,14 @@ const ObjectCell: React.FC<{ value: any }> = ({ value }) => {
         .map((key) => `${key}: ${value[key]}`)
         .join(', ');
 
-    return <span className="text-xs text-gray-600 font-mono">{`{${preview}${keys.length > 2 ? '...' : '}'}}`}</span>;
+    return (
+        <span className="text-xs text-gray-600 font-mono group relative cursor-help">
+            {`{${preview}${keys.length > 2 ? '...' : '}'}}`}
+            <div className="invisible group-hover:visible absolute z-10 w-80 p-3 mt-1 text-xs bg-black text-white rounded shadow-lg font-mono">
+                <pre>{JSON.stringify(value, null, 2)}</pre>
+            </div>
+        </span>
+    );
 };
 
 // JSON ячейка с форматированием

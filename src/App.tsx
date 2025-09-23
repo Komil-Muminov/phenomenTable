@@ -356,6 +356,7 @@ function App() {
                     showSummary={true}
                     searchable={true}
                     sortable={true}
+                    filterMode="server"
                     pageSize={10}
                     filters="smart"
                     features={['sorting', 'filtering', 'export', 'summary', 'search']}

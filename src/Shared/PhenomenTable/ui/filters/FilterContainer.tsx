@@ -1,24 +1,7 @@
 import React, { useState } from 'react';
 import { SearchIcon, FilterIcon, XIcon, RefreshCcwIcon, ChevronDownIcon, ChevronUpIcon } from 'lucide-react';
 
-interface FilterComponent {
-    id: string;
-    type: string;
-    label: string;
-    placeholder?: string;
-    options?: any[];
-    component: React.ComponentType<any>;
-}
-
-interface FilterContainerProps {
-    filters: FilterComponent[];
-    globalFilter: string;
-    onGlobalFilterChange: (value: string) => void;
-    onColumnFiltersChange: (filters: any[]) => void;
-    isMobile: boolean;
-}
-
-export const FilterContainer: React.FC<FilterContainerProps> = ({
+export const FilterContainer: React.FC<any> = ({
     filters,
     globalFilter,
     onGlobalFilterChange,

@@ -1,22 +1,13 @@
 import { useState, useMemo } from 'react';
 
-interface UseSmartFiltersOptions {
-    data: any[];
-    columns: any[];
-    filters: 'smart' | any[] | false;
-    searchable?: boolean;
-}
-
-interface FilterComponent {
-    id: string;
-    type: string;
-    label: string;
-    placeholder?: string;
-    options?: any[];
-    component: React.ComponentType<any>;
-}
-
-export const useSmartFilters = ({ data, columns, filters, searchable = true }: UseSmartFiltersOptions) => {
+export const useSmartFilters = ({
+    data,
+    columns,
+    filters,
+    searchable = true,
+    filterMode = 'client',
+    onFiltersChange,
+}: any) => {
     const [globalFilter, setGlobalFilter] = useState('');
     const [columnFilters, setColumnFilters] = useState<any[]>([]);
 
@@ -26,7 +17,7 @@ export const useSmartFilters = ({ data, columns, filters, searchable = true }: U
 
         // Если фильтры переданы вручную
         if (Array.isArray(filters)) {
-            return filters.map((filter) => ({
+            return filters?.map((filter) => ({
                 ...filter,
                 component: getFilterComponent(filter.type),
             }));
@@ -34,7 +25,7 @@ export const useSmartFilters = ({ data, columns, filters, searchable = true }: U
 
         // Автогенерация умных фильтров
         if (filters === 'smart' && columns.length > 0) {
-            const smartFilters: FilterComponent[] = [];
+            const smartFilters: any = [];
 
             // Глобальный поиск
             if (searchable) {
@@ -48,7 +39,7 @@ export const useSmartFilters = ({ data, columns, filters, searchable = true }: U
             }
 
             // Автофильтры по колонкам
-            columns.forEach((column) => {
+            columns.forEach((column: any) => {
                 const { id, meta } = column;
                 if (!meta || !id) return;
 
@@ -69,35 +60,53 @@ export const useSmartFilters = ({ data, columns, filters, searchable = true }: U
         return [];
     }, [data, columns, filters, searchable]);
 
-    // Применение фильтров
+    // Применение фильтров с учетом режима
     const applyFilters = (filterId: string, value: any) => {
         if (filterId === 'global') {
             setGlobalFilter(value);
+
+            // Для серверного режима уведомляем родительский компонент
+            if (filterMode === 'server' && onFiltersChange) {
+                onFiltersChange({
+                    globalFilter: value,
+                    columnFilters,
+                    type: 'global',
+                });
+            }
             return;
         }
 
-        setColumnFilters((prev) => {
-            const existing = prev.find((f) => f.id === filterId);
+        const newColumnFilters = columnFilters.filter((f) => f.id !== filterId);
 
-            if (!value || value === '' || (Array.isArray(value) && value.length === 0)) {
-                // Удаляем фильтр если значение пустое
-                return prev.filter((f) => f.id !== filterId);
-            }
+        if (value && value !== '' && !(Array.isArray(value) && value.length === 0)) {
+            newColumnFilters.push({ id: filterId, value });
+        }
 
-            if (existing) {
-                // Обновляем существующий
-                return prev.map((f) => (f.id === filterId ? { id: filterId, value } : f));
-            } else {
-                // Добавляем новый
-                return [...prev, { id: filterId, value }];
-            }
-        });
+        setColumnFilters(newColumnFilters);
+
+        // Для серверного режима уведомляем родительский компонент
+        if (filterMode === 'server' && onFiltersChange) {
+            onFiltersChange({
+                globalFilter,
+                columnFilters: newColumnFilters,
+                type: 'column',
+            });
+        }
     };
 
-    // Сброс фильтров
+    // Сброс фильтров с учетом режима
     const resetFilters = () => {
         setGlobalFilter('');
         setColumnFilters([]);
+
+        // Для серверного режима уведомляем родительский компонент
+        if (filterMode === 'server' && onFiltersChange) {
+            onFiltersChange({
+                globalFilter: '',
+                columnFilters: [],
+                type: 'reset',
+            });
+        }
     };
 
     // Получение активных фильтров
@@ -130,11 +139,12 @@ export const useSmartFilters = ({ data, columns, filters, searchable = true }: U
         applyFilters,
         resetFilters,
         activeFilters,
+        filterMode,
     };
 };
 
 // Генерация фильтра для типа колонки
-const generateFilterForType = (columnId: string, type: string, data: any[]): FilterComponent | null => {
+const generateFilterForType = (columnId: string, type: string, data: any[]): any | null => {
     const label = formatFilterLabel(columnId);
 
     switch (type) {
@@ -211,7 +221,7 @@ const getFilterComponent = (type: string) => {
                 value={value || ''}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full"
             />
         ),
 
@@ -221,7 +231,7 @@ const getFilterComponent = (type: string) => {
                 value={value || ''}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full"
             />
         ),
 
@@ -229,7 +239,7 @@ const getFilterComponent = (type: string) => {
             <select
                 value={value || ''}
                 onChange={(e) => onChange(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full"
             >
                 <option value="">{placeholder || 'Выберите...'}</option>
                 {options?.map((opt: any) => (
@@ -240,58 +250,67 @@ const getFilterComponent = (type: string) => {
             </select>
         ),
 
-        multiSelect: ({ value, onChange, options, placeholder }: any) => (
-            <select
-                multiple
-                value={value || []}
-                onChange={(e) => {
-                    const selected = Array.from(e.target.selectedOptions, (option) => option.value);
-                    onChange(selected);
-                }}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                size={3}
-            >
-                {options?.map((opt: any) => (
-                    <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                    </option>
-                ))}
-            </select>
-        ),
-
-        dateRange: ({ value, onChange, placeholder }: any) => (
-            <div className="flex gap-2">
-                <input
-                    type="date"
-                    value={value?.from || ''}
-                    onChange={(e) => onChange({ ...value, from: e.target.value })}
-                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <input
-                    type="date"
-                    value={value?.to || ''}
-                    onChange={(e) => onChange({ ...value, to: e.target.value })}
-                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+        multiSelect: ({ value, onChange, options }: any) => (
+            <div className="relative">
+                <select
+                    multiple
+                    value={value || []}
+                    onChange={(e) => {
+                        const selected = Array.from(e.target.selectedOptions, (option) => option.value);
+                        onChange(selected);
+                    }}
+                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full"
+                    size={3}
+                >
+                    {options?.map((opt: any) => (
+                        <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                        </option>
+                    ))}
+                </select>
+                <div className="text-xs text-gray-500 mt-1">Удерживайте Ctrl для выбора нескольких значений</div>
             </div>
         ),
 
-        numberRange: ({ value, onChange, placeholder }: any) => (
-            <div className="flex gap-2">
-                <input
-                    type="number"
-                    value={value?.min || ''}
-                    onChange={(e) => onChange({ ...value, min: e.target.value })}
-                    placeholder="От"
-                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <input
-                    type="number"
-                    value={value?.max || ''}
-                    onChange={(e) => onChange({ ...value, max: e.target.value })}
-                    placeholder="До"
-                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+        dateRange: ({ value, onChange }: any) => (
+            <div className="space-y-2">
+                <div className="text-xs text-gray-500 mb-1">От - До</div>
+                <div className="flex gap-2">
+                    <input
+                        type="date"
+                        value={value?.from || ''}
+                        onChange={(e) => onChange({ ...value, from: e.target.value })}
+                        className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm flex-1"
+                    />
+                    <input
+                        type="date"
+                        value={value?.to || ''}
+                        onChange={(e) => onChange({ ...value, to: e.target.value })}
+                        className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm flex-1"
+                    />
+                </div>
+            </div>
+        ),
+
+        numberRange: ({ value, onChange }: any) => (
+            <div className="space-y-2">
+                <div className="text-xs text-gray-500 mb-1">Диапазон</div>
+                <div className="flex gap-2">
+                    <input
+                        type="number"
+                        value={value?.min || ''}
+                        onChange={(e) => onChange({ ...value, min: e.target.value })}
+                        placeholder="От"
+                        className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm flex-1"
+                    />
+                    <input
+                        type="number"
+                        value={value?.max || ''}
+                        onChange={(e) => onChange({ ...value, max: e.target.value })}
+                        placeholder="До"
+                        className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm flex-1"
+                    />
+                </div>
             </div>
         ),
     };

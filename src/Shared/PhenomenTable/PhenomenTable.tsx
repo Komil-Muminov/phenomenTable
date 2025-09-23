@@ -25,6 +25,7 @@ interface PhenomenTableProps {
     // Фильтры
     filters?: 'smart' | any[] | false;
     hideFilters?: boolean;
+    filterMode?: 'client' | 'server';
 
     // Фичи
     features?: string[];
@@ -40,6 +41,9 @@ interface PhenomenTableProps {
     onRowClick?: (row: any) => void;
     onDataChange?: (data: any[]) => void;
     onExport?: (data: any[]) => void;
+    onFiltersChange?: (filters: any) => void;
+    onSortChange?: (sorting: any) => void;
+    onPaginationChange?: (pagination: any) => void;
 
     // UI
     className?: string;
@@ -62,6 +66,7 @@ export const PhenomenTable: React.FC<PhenomenTableProps> = ({
     // Фильтры
     filters = 'smart',
     hideFilters = false,
+    filterMode = 'client',
 
     // Фичи
     features = [],
@@ -77,6 +82,9 @@ export const PhenomenTable: React.FC<PhenomenTableProps> = ({
     onRowClick,
     onDataChange,
     onExport,
+    onFiltersChange,
+    onSortChange,
+    onPaginationChange,
 
     // UI
     className = '',
@@ -88,7 +96,7 @@ export const PhenomenTable: React.FC<PhenomenTableProps> = ({
     mobileView = 'cards',
 }) => {
     // 1. Адаптация данных - универсальная обработка любого формата
-    const { data, totalCount, meta, isLoading } = useDataAdapter({
+    const { data, totalCount, meta, isLoading, refresh } = useDataAdapter({
         dataSource,
         pageSize,
         onDataChange,
@@ -104,11 +112,21 @@ export const PhenomenTable: React.FC<PhenomenTableProps> = ({
     });
 
     // 3. Умные фильтры - автоматически по типам данных
-    const { globalFilter, columnFilters, setGlobalFilter, setColumnFilters, filterComponents } = useSmartFilters({
+    const {
+        globalFilter,
+        columnFilters,
+        setGlobalFilter,
+        setColumnFilters,
+        filterComponents,
+        applyFilters,
+        resetFilters,
+    } = useSmartFilters({
         data,
         columns: tableColumns,
         filters,
         searchable,
+        filterMode,
+        onFiltersChange,
     });
 
     // 4. Инициализация TanStack Table
@@ -116,48 +134,64 @@ export const PhenomenTable: React.FC<PhenomenTableProps> = ({
         data: data || [],
         columns: tableColumns,
         getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
+        getPaginationRowModel: filterMode === 'client' ? getPaginationRowModel() : undefined,
+        getSortedRowModel: filterMode === 'client' ? getSortedRowModel() : undefined,
+        getFilteredRowModel: filterMode === 'client' ? getFilteredRowModel() : undefined,
         state: {
-            globalFilter,
-            columnFilters,
+            globalFilter: filterMode === 'client' ? globalFilter : undefined,
+            columnFilters: filterMode === 'client' ? columnFilters : undefined,
             pagination: {
                 pageIndex: 0,
                 pageSize,
             },
         },
-        onGlobalFilterChange: setGlobalFilter,
-        onColumnFiltersChange: setColumnFilters,
+        onGlobalFilterChange: filterMode === 'client' ? setGlobalFilter : undefined,
+        onColumnFiltersChange: filterMode === 'client' ? setColumnFilters : undefined,
         enableSorting: sortable,
-        enableFilters: true,
-        manualPagination: false,
-        pageCount: Math.ceil((totalCount || data?.length || 0) / pageSize),
+        enableFilters: filterMode === 'client',
+        manualPagination: filterMode === 'server',
+        manualSorting: filterMode === 'server',
+        manualFiltering: filterMode === 'server',
+        pageCount: filterMode === 'server' ? Math.ceil((totalCount || 0) / pageSize) : undefined,
     });
 
-    // 5. Обработка изменений данных
+    // 5. Обработка изменений для серверного режима
+    React.useEffect(() => {
+        if (filterMode === 'server' && onFiltersChange) {
+            const serverFilters = {
+                globalFilter: globalFilter || '',
+                columnFilters: columnFilters || [],
+                sorting: table.getState().sorting || [],
+                pagination: table.getState().pagination,
+            };
+            onFiltersChange(serverFilters);
+        }
+    }, [globalFilter, columnFilters, filterMode, onFiltersChange, table]);
+
+    // 6. Обработка изменений данных
     React.useEffect(() => {
         if (onDataChange && data) {
             onDataChange(data);
         }
     }, [data, onDataChange]);
 
-    // 6. Обработка клика по строке
+    // 7. Обработка клика по строке
     const handleRowClick = (row: any) => {
         if (onRowClick) {
             onRowClick(row.original);
         }
     };
 
-    // 7. Обработка экспорта
+    // 8. Обработка экспорта
     const handleExport = () => {
-        const exportData = table.getFilteredRowModel().rows.map((row) => row.original);
+        const exportData =
+            filterMode === 'client' ? table.getFilteredRowModel().rows.map((row) => row.original) : data || [];
         if (onExport) {
             onExport(exportData);
         }
     };
 
-    // 8. Проверка на мобильное устройство
+    // 9. Проверка на мобильное устройство
     const isMobile = typeof window !== 'undefined' && window.innerWidth < mobileBreakpoint;
 
     return (
@@ -171,9 +205,11 @@ export const PhenomenTable: React.FC<PhenomenTableProps> = ({
                     <FilterContainer
                         filters={filterComponents}
                         globalFilter={globalFilter}
-                        onGlobalFilterChange={setGlobalFilter}
-                        onColumnFiltersChange={setColumnFilters}
+                        onGlobalFilterChange={filterMode === 'client' ? setGlobalFilter : applyFilters}
+                        onColumnFiltersChange={filterMode === 'client' ? setColumnFilters : applyFilters}
+                        onResetFilters={resetFilters}
                         isMobile={isMobile}
+                        filterMode={filterMode}
                     />
 
                     {showExport && <ExportButton onExport={handleExport} data={data} loading={isLoading} />}
