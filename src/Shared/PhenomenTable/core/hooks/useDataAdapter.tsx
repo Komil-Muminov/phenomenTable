@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { debounce } from 'lodash';
 
 interface DataAdapterResult {
     data: any[];
@@ -6,11 +7,11 @@ interface DataAdapterResult {
     meta: any;
     isLoading: boolean;
     error: string | null;
-    refresh: () => void;
+    refresh: (params?: any) => void;
 }
 
 interface DataAdapterOptions {
-    dataSource: any;
+    dataSource: string | ((params: any) => Promise<any>); // URL или функция для fetch
     pageSize?: number;
     onDataChange?: (data: any[]) => void;
 }
@@ -21,21 +22,14 @@ export const useDataAdapter = ({ dataSource, pageSize = 10, onDataChange }: Data
     const [meta, setMeta] = useState<any>({});
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-    // Функция обновления данных
-    const refresh = () => {
-        setRefreshTrigger((prev) => prev + 1);
-    };
-
-    // Универсальная нормализация данных
-    const normalizeData = (rawData: any) => {
-        // Если null или undefined
+    // Нормализация данных с бэка
+    const normalizeData = useCallback((rawData: any) => {
         if (!rawData) {
             return { items: [], total: 0, meta: {} };
         }
 
-        // Если обычный массив: [1, 2, 3] или [{id: 1}, {id: 2}]
+        // Форматы API: { data: [...], total: 100 } или { items: [...], total: 100 } или { results: [...], totalCount: 100 }
         if (Array.isArray(rawData)) {
             return {
                 items: rawData,
@@ -44,64 +38,32 @@ export const useDataAdapter = ({ dataSource, pageSize = 10, onDataChange }: Data
             };
         }
 
-        // Если объект с массивом внутри
         if (typeof rawData === 'object') {
-            // Популярные форматы API:
-
-            // { data: [...], total: 100 }
             if (rawData.data && Array.isArray(rawData.data)) {
                 return {
                     items: rawData.data,
                     total: rawData.total || rawData.count || rawData.data.length,
-                    meta: rawData.meta || rawData,
+                    meta: rawData.meta || {},
                 };
             }
 
-            // { items: [...], total: 100 }
             if (rawData.items && Array.isArray(rawData.items)) {
                 return {
                     items: rawData.items,
                     total: rawData.total || rawData.count || rawData.items.length,
-                    meta: rawData.meta || rawData,
+                    meta: rawData.meta || {},
                 };
             }
 
-            // { results: [...], totalCount: 100 }
             if (rawData.results && Array.isArray(rawData.results)) {
                 return {
                     items: rawData.results,
                     total: rawData.totalCount || rawData.total || rawData.results.length,
-                    meta: rawData.meta || rawData,
+                    meta: rawData.meta || {},
                 };
             }
 
-            // { response: { data: [...] } }
-            if (rawData.response) {
-                return normalizeData(rawData.response);
-            }
-
-            // { payload: [...] }
-            if (rawData.payload && Array.isArray(rawData.payload)) {
-                return {
-                    items: rawData.payload,
-                    total: rawData.total || rawData.payload.length,
-                    meta: rawData,
-                };
-            }
-
-            // Если объект, но не массив - возможно одна запись
-            const keys = Object.keys(rawData);
-            const arrayKey = keys.find((key) => Array.isArray(rawData[key]));
-
-            if (arrayKey) {
-                return {
-                    items: rawData[arrayKey],
-                    total: rawData.total || rawData.count || rawData[arrayKey].length,
-                    meta: rawData,
-                };
-            }
-
-            // Если один объект - делаем массив из одного элемента
+            // Если объект, но не массив - делаем массив из одного элемента
             return {
                 items: [rawData],
                 total: 1,
@@ -109,42 +71,54 @@ export const useDataAdapter = ({ dataSource, pageSize = 10, onDataChange }: Data
             };
         }
 
-        // Если примитив (строка, число) - делаем массив
         return {
-            items: [rawData],
-            total: 1,
+            items: [],
+            total: 0,
             meta: {},
         };
-    };
+    }, []);
 
-    // Загрузка данных
-    useEffect(() => {
-        const loadData = async () => {
+    // Функция загрузки данных с бэка
+    const loadData = useCallback(
+        debounce(async (params: any = {}) => {
             try {
                 setIsLoading(true);
                 setError(null);
 
                 let rawData;
 
-                // Если строка - это URL для API
+                // Если dataSource - строка (URL), добавляем параметры в query string
                 if (typeof dataSource === 'string') {
-                    const response = await fetch(dataSource);
+                    const url = new URL(dataSource);
+                    if (params.pagination) {
+                        url.searchParams.set('page', (params.pagination.pageIndex + 1).toString());
+                        url.searchParams.set('pageSize', params.pagination.pageSize.toString());
+                    }
+                    if (params.globalFilter) {
+                        url.searchParams.set('search', params.globalFilter);
+                    }
+                    if (params.columnFilters && params.columnFilters.length > 0) {
+                        params.columnFilters.forEach((filter: any) => {
+                            url.searchParams.set(filter.id, filter.value);
+                        });
+                    }
+                    if (params.sorting && params.sorting.length > 0) {
+                        const sort = params.sorting[0];
+                        url.searchParams.set('sortBy', sort.id);
+                        url.searchParams.set('sortOrder', sort.desc ? 'desc' : 'asc');
+                    }
+
+                    const response = await fetch(url.toString());
                     if (!response.ok) {
                         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
                     rawData = await response.json();
                 }
-                // Если функция - вызываем её
+                // Если dataSource - функция, передаем параметры напрямую
                 else if (typeof dataSource === 'function') {
-                    rawData = await dataSource();
-                }
-                // Если Promise - ждем его
-                else if (dataSource && typeof dataSource.then === 'function') {
-                    rawData = await dataSource;
-                }
-                // Если обычные данные
-                else {
-                    rawData = dataSource;
+                    rawData = await dataSource(params);
+                } else {
+                    throw new Error('dataSource должен быть строкой (URL) или функцией');
                 }
 
                 // Нормализуем данные
@@ -166,10 +140,22 @@ export const useDataAdapter = ({ dataSource, pageSize = 10, onDataChange }: Data
             } finally {
                 setIsLoading(false);
             }
-        };
+        }, 300), // Debounce на 300ms для предотвращения спама запросов
+        [dataSource, onDataChange],
+    );
 
-        loadData();
-    }, [dataSource, refreshTrigger, onDataChange]);
+    // Функция обновления данных
+    const refresh = useCallback(
+        (params?: any) => {
+            loadData(params);
+        },
+        [loadData],
+    );
+
+    // Загрузка данных при монтировании или изменении dataSource
+    useEffect(() => {
+        loadData({ pagination: { pageIndex: 0, pageSize } });
+    }, [dataSource, pageSize]);
 
     return {
         data,

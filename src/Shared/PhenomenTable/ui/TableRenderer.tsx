@@ -1,23 +1,18 @@
-import React from 'react';
 import { flexRender } from '@tanstack/react-table';
 import { ChevronUpIcon, ChevronDownIcon } from 'lucide-react';
-
-interface TableRendererProps {
-    table: any;
-    isLoading: boolean;
-    onRowClick?: (row: any) => void;
-    isMobile: boolean;
-    mobileView: 'cards' | 'scroll';
-    features: string[];
-}
-
-export const TableRenderer: React.FC<TableRendererProps> = ({
+import { ExportButton } from './components/ExportButton';
+export const TableRenderer = ({
     table,
     isLoading,
     onRowClick,
     isMobile,
     mobileView,
     features,
+    showExport,
+    exportApi,
+    data,
+    loading,
+    onExport,
 }) => {
     const rows = table.getRowModel().rows;
 
@@ -39,6 +34,13 @@ export const TableRenderer: React.FC<TableRendererProps> = ({
     // Обычная таблица
     return (
         <div className="phenomen-table-container">
+            {/* Кнопка экспорта */}
+            {showExport && (
+                <div className="mb-4">
+                    <ExportButton data={data} loading={loading} onExport={onExport} exportApi={exportApi} />
+                </div>
+            )}
+
             <div className="overflow-x-auto">
                 <table className="w-full border-collapse bg-white">
                     <TableHeader table={table} />
@@ -52,11 +54,11 @@ export const TableRenderer: React.FC<TableRendererProps> = ({
 };
 
 // Заголовок таблицы
-const TableHeader: React.FC<{ table: any }> = ({ table }) => (
+const TableHeader = ({ table }) => (
     <thead className="bg-gray-50 border-b border-gray-200">
-        {table.getHeaderGroups().map((headerGroup: any) => (
+        {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header: any) => (
+                {headerGroup.headers.map((header) => (
                     <th
                         key={header.id}
                         className={`
@@ -92,7 +94,7 @@ const TableHeader: React.FC<{ table: any }> = ({ table }) => (
 );
 
 // Тело таблицы
-const TableBody: React.FC<{ rows: any[]; onRowClick?: (row: any) => void }> = ({ rows, onRowClick }) => (
+const TableBody = ({ rows, onRowClick }) => (
     <tbody className="bg-white divide-y divide-gray-200">
         {rows.map((row, index) => (
             <tr
@@ -104,7 +106,7 @@ const TableBody: React.FC<{ rows: any[]; onRowClick?: (row: any) => void }> = ({
         `}
                 onClick={() => onRowClick?.(row)}
             >
-                {row.getVisibleCells().map((cell: any) => (
+                {row.getVisibleCells().map((cell) => (
                     <td key={cell.id} className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
@@ -115,10 +117,7 @@ const TableBody: React.FC<{ rows: any[]; onRowClick?: (row: any) => void }> = ({
 );
 
 // Мобильная версия - карточки
-const MobileCardView: React.FC<{
-    rows: any[];
-    onRowClick?: (row: any) => void;
-}> = ({ rows, onRowClick }) => (
+const MobileCardView = ({ rows, onRowClick }) => (
     <div className="space-y-4 p-4">
         {rows.map((row) => (
             <div
@@ -130,11 +129,10 @@ const MobileCardView: React.FC<{
         `}
                 onClick={() => onRowClick?.(row)}
             >
-                {row.getVisibleCells().map((cell: any) => {
+                {row.getVisibleCells().map((cell) => {
                     const header = cell.column.columnDef.header;
                     const value = cell.getValue();
 
-                    // Пропускаем пустые значения и ID
                     if (!value || cell.column.id === 'id') return null;
 
                     return (
@@ -154,7 +152,7 @@ const MobileCardView: React.FC<{
 );
 
 // Пагинация
-const TablePagination: React.FC<{ table: any }> = ({ table }) => {
+const TablePagination = ({ table }) => {
     const pageIndex = table.getState().pagination.pageIndex;
     const pageCount = table.getPageCount();
     const canPrevious = table.getCanPreviousPage();
@@ -221,7 +219,7 @@ const TablePagination: React.FC<{ table: any }> = ({ table }) => {
 };
 
 // Загрузочное состояние
-const LoadingState: React.FC = () => (
+const LoadingState = () => (
     <div className="flex items-center justify-center py-12">
         <div className="flex items-center gap-3">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
@@ -231,7 +229,7 @@ const LoadingState: React.FC = () => (
 );
 
 // Пустое состояние
-const EmptyState: React.FC = () => (
+const EmptyState = () => (
     <div className="flex flex-col items-center justify-center py-12">
         <div className="text-gray-400 mb-4">
             <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">

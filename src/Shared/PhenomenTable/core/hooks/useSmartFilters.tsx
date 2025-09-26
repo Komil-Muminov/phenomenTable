@@ -1,11 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 
 export const useSmartFilters = ({
     data,
     columns,
     filters,
-    searchable = true,
-    filterMode = 'client',
+    searchable = false,
+    filterMode = 'server',
     onFiltersChange,
 }: any) => {
     const [globalFilter, setGlobalFilter] = useState('');
@@ -23,11 +23,11 @@ export const useSmartFilters = ({
             }));
         }
 
-        // Автогенерация умных фильтров
+        // Автогенерация умных фильтров (ограничено)
         if (filters === 'smart' && columns.length > 0) {
             const smartFilters: any = [];
 
-            // Глобальный поиск
+            // Глобальный поиск только если searchable
             if (searchable) {
                 smartFilters.push({
                     id: 'global',
@@ -38,8 +38,8 @@ export const useSmartFilters = ({
                 });
             }
 
-            // Автофильтры по колонкам
-            columns.forEach((column: any) => {
+            // Автофильтры по колонкам (ограничим до 5 для производительности)
+            columns.slice(0, 5).forEach((column: any) => {
                 const { id, meta } = column;
                 if (!meta || !id) return;
 
@@ -54,62 +54,59 @@ export const useSmartFilters = ({
                 }
             });
 
-            return smartFilters.slice(0, 8); // Ограничиваем количество фильтров
+            return smartFilters;
         }
 
         return [];
-    }, [data, columns, filters, searchable]);
+    }, [columns, filters, searchable]); // Убрали data из deps для оптимизации
 
-    // Применение фильтров с учетом режима
-    const applyFilters = (filterId: string, value: any) => {
-        if (filterId === 'global') {
-            setGlobalFilter(value);
+    // Применение фильтров
+    const applyFilters = useCallback(
+        (filterId: string, value: any) => {
+            if (filterId === 'global') {
+                setGlobalFilter(value);
+                if (onFiltersChange) {
+                    onFiltersChange({
+                        globalFilter: value,
+                        columnFilters,
+                        type: 'global',
+                    });
+                }
+                return;
+            }
 
-            // Для серверного режима уведомляем родительский компонент
-            if (filterMode === 'server' && onFiltersChange) {
+            const newColumnFilters = columnFilters.filter((f) => f.id !== filterId);
+
+            if (value && value !== '' && !(Array.isArray(value) && value.length === 0)) {
+                newColumnFilters.push({ id: filterId, value });
+            }
+
+            setColumnFilters(newColumnFilters);
+            if (onFiltersChange) {
                 onFiltersChange({
-                    globalFilter: value,
-                    columnFilters,
-                    type: 'global',
+                    globalFilter,
+                    columnFilters: newColumnFilters,
+                    type: 'column',
                 });
             }
-            return;
-        }
+        },
+        [columnFilters, globalFilter, onFiltersChange],
+    );
 
-        const newColumnFilters = columnFilters.filter((f) => f.id !== filterId);
-
-        if (value && value !== '' && !(Array.isArray(value) && value.length === 0)) {
-            newColumnFilters.push({ id: filterId, value });
-        }
-
-        setColumnFilters(newColumnFilters);
-
-        // Для серверного режима уведомляем родительский компонент
-        if (filterMode === 'server' && onFiltersChange) {
-            onFiltersChange({
-                globalFilter,
-                columnFilters: newColumnFilters,
-                type: 'column',
-            });
-        }
-    };
-
-    // Сброс фильтров с учетом режима
-    const resetFilters = () => {
+    // Сброс фильтров
+    const resetFilters = useCallback(() => {
         setGlobalFilter('');
         setColumnFilters([]);
-
-        // Для серверного режима уведомляем родительский компонент
-        if (filterMode === 'server' && onFiltersChange) {
+        if (onFiltersChange) {
             onFiltersChange({
                 globalFilter: '',
                 columnFilters: [],
                 type: 'reset',
             });
         }
-    };
+    }, [onFiltersChange]);
 
-    // Получение активных фильтров
+    // Получение активных фильтров (memoized)
     const activeFilters = useMemo(() => {
         const active: any[] = [];
 
@@ -143,7 +140,7 @@ export const useSmartFilters = ({
     };
 };
 
-// Генерация фильтра для типа колонки
+// Остальные функции без изменений (generateFilterForType, getFilterComponent, getUniqueValues, formatFilterLabel, formatFilterValue)
 const generateFilterForType = (columnId: string, type: string, data: any[]): any | null => {
     const label = formatFilterLabel(columnId);
 
@@ -212,7 +209,6 @@ const generateFilterForType = (columnId: string, type: string, data: any[]): any
     return null;
 };
 
-// Получение компонента фильтра
 const getFilterComponent = (type: string) => {
     const components = {
         search: ({ value, onChange, placeholder }: any) => (
@@ -318,14 +314,12 @@ const getFilterComponent = (type: string) => {
     return components[type as keyof typeof components] || components.text;
 };
 
-// Получение уникальных значений колонки
 const getUniqueValues = (data: any[], columnId: string): any[] => {
     const values = data.map((row) => row[columnId]).filter((val) => val != null);
 
     return [...new Set(values)].slice(0, 10);
 };
 
-// Форматирование названия фильтра
 const formatFilterLabel = (columnId: string): string => {
     return columnId
         .replace(/([A-Z])/g, ' $1')
@@ -334,7 +328,6 @@ const formatFilterLabel = (columnId: string): string => {
         .trim();
 };
 
-// Форматирование значения фильтра для отображения
 const formatFilterValue = (value: any, type: string): string => {
     if (!value) return '';
 
