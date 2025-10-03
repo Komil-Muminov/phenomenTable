@@ -28,7 +28,7 @@ function App() {
                         console.log(row);
                     }}
                     searchButton={true}
-                    handleSelectionChange={(selectedRowKeys, selectedRows) => {
+                    handleSelectionChange={(selectedRowKeys: any, selectedRows: any) => {
                         console.log('Selected Row Keys:', selectedRowKeys);
                         console.log('Selected Rows:', selectedRows);
                     }}
