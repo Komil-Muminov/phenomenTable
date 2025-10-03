@@ -2,7 +2,6 @@ import { TableColumnsType, TableProps } from 'antd';
 import { TableRowSelection } from 'antd/es/table/interface';
 import { useTableDownload } from '@shared/lib/hooks/hooks';
 import { TableContent } from './TableContent';
-import { OfflineManager } from './OfflineManager';
 import { useSmartTable, useTableSelection } from './lib';
 import { IFilterItem } from '@shared/model';
 // import { useEffect } from 'react';
@@ -86,18 +85,6 @@ export function SmartTable<RecordType = any, ResponseType = any>(props: IProps<R
 
     return (
         <div className="bg-white rounded-2xl py-2 px-2 sm:py-4 sm:px-5">
-            {offlineMode?.enabled && (
-                <OfflineManager
-                    storeName={offlineMode.storeName}
-                    selectedRowKeys={selection.selectedRowKeys}
-                    selectedRows={selection.selectedRows}
-                    tableData={tableLogic.tableData}
-                    columns={props.columns}
-                    onLoadFromDB={(items) => console.log('Load from DB:', items)}
-                    hasItem={(id) => false}
-                />
-            )}
-
             {props.customRender ? (
                 props.customRender(tableLogic.tableData, tableLogic.total)
             ) : (
