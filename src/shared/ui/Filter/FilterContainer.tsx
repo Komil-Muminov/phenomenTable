@@ -1,9 +1,9 @@
 import { Button, Space } from 'antd';
-import { ReloadOutlined, DownloadOutlined } from '@ant-design/icons';
+import { DownloadOutlined, ClearOutlined } from '@ant-design/icons';
 import { FilterInput } from './FilterInput';
 import { FilterSelect } from './FilterSelect';
 import { FilterDate } from './FilterDate';
-import { IFilterItem } from '@shared/model'; 
+import { IFilterItem } from '@shared/model';
 
 interface FiltersContainerProps {
     filters: IFilterItem[];
@@ -57,7 +57,7 @@ export const FiltersContainer = (props: FiltersContainerProps) => {
                 </Button>
             )}
 
-            <Button icon={<ReloadOutlined />} onClick={onResetFilters} disabled={isLoading}>
+            <Button type="primary" danger icon={<ClearOutlined />} onClick={onResetFilters} disabled={isLoading}>
                 Сбросить
             </Button>
 
