@@ -67,10 +67,10 @@ export const useOfflineStore = (collection: any, getKey: any) => {
     };
 
     const addItem = (item: any) => collection.insert(item);
-    const addItems = (items: any[]) => items.forEach((item: any) => collection.insert(item));
+    const addItems = (items: any) => items.forEach((item: any) => collection.insert(item));
     const updateItem = (id: any, updater: any) => collection.update(id, updater);
     const removeItem = (id: any) => collection.delete(id);
-    const removeItems = (ids: any[]) => ids.forEach((id: any) => collection.delete(id));
+    const removeItems = (ids: any) => ids.forEach((id: any) => collection.delete(id));
     const clearAll = () => {
         const allIds = items.map((item: any) => getKey(item));
         allIds.forEach((id: any) => collection.delete(id));
