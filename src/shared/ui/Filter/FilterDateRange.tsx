@@ -1,7 +1,7 @@
 import { FC, useEffect, useState } from 'react';
 import { DatePicker } from 'antd';
 import { IFilterItem } from '@shared/model';
-import { useDebouncedCallback, useDynamicSearchParams } from '@shared/config';
+import { useDebouncedCallback, useDynamicSearchParams } from '@shared/lib';
 import dayjs from 'dayjs';
 // import { useDebouncedCallback, useDynamicSearchParams } from '@shared/config';
 // import { IFilterItem } from './FilterContainer';
