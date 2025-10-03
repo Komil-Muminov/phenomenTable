@@ -11,6 +11,12 @@ function App() {
             <div className="!flex !flex-col !justify-end !bg-red-500">
                 <SmartTable
                     url="ss"
+                    dataSource={[
+                        { id: 1, title: 'Test Title', senderCity: 'Test City', startDate: '2023-01-01' },
+                        { id: 2, title: 'Test Title', senderCity: 'Test City', startDate: '2023-01-01' },
+                        { id: 3, title: 'Test Title', senderCity: 'Test City', startDate: '2023-01-01' },
+                        { id: 4, title: 'Test Title', senderCity: 'Test City', startDate: '2023-01-01' },
+                    ]}
                     filters={[
                         {
                             type: FilterType.DATE,
@@ -18,7 +24,14 @@ function App() {
                             placeholder: 'От',
                         },
                     ]}
+                    handleRowClick={(row) => {
+                        console.log(row);
+                    }}
                     searchButton={true}
+                    handleSelectionChange={(selectedRowKeys, selectedRows) => {
+                        console.log('Selected Row Keys:', selectedRowKeys);
+                        console.log('Selected Rows:', selectedRows);
+                    }}
                     columns={[
                         {
                             title: 'Город отправителя',

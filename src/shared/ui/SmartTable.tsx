@@ -4,10 +4,6 @@ import { useTableDownload } from '@shared/lib/hooks/hooks';
 import { TableContent } from './TableContent';
 import { useSmartTable, useTableSelection } from './lib';
 import { IFilterItem } from '@shared/model';
-// import { useEffect } from 'react';
-// import { AppRoutes } from '@shared/config';
-// import { useLocation } from 'react-router-dom';
-// import { useMutationQuery } from '@shared/config';
 
 interface IDownloadButton {
     url: string;
@@ -28,6 +24,7 @@ interface IProps<RecordType, ResponseType> {
     style?: string;
     getItemsFromResponse?: (response: ResponseType) => RecordType[];
     handleRowClick?: (row: RecordType) => void;
+    handleSelectionChange?: any;
     dataSource?: RecordType[];
     rowClassName?: (record: RecordType, index: number) => string;
     title?: string;
@@ -53,7 +50,7 @@ interface IProps<RecordType, ResponseType> {
 }
 
 export function SmartTable<RecordType = any, ResponseType = any>(props: IProps<RecordType, ResponseType>) {
-    const { downloadButton, downloadPayload, offlineMode } = props;
+    const { downloadButton, downloadPayload } = props;
 
     const tableLogic = useSmartTable<RecordType, ResponseType>({
         url: props.url,
@@ -69,7 +66,7 @@ export function SmartTable<RecordType = any, ResponseType = any>(props: IProps<R
     const selection = useTableSelection<any>({
         data: tableLogic.tableData,
         rowKey: 'id',
-        onSelectionChange: props.rowSelection?.onChange,
+        onSelectionChange: props.handleSelectionChange, // ← теперь мы используем handleSelectionChange
     });
 
     const { handleDownload, downloadPending } = useTableDownload({ downloadButton });
