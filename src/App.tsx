@@ -11,12 +11,6 @@ function App() {
                         { id: 1, title: 'Test Title', senderCity: 'Test City', startDate: '2023-01-01' },
                         { id: 2, title: 'Test Title', senderCity: 'Test City', startDate: '2023-01-01' },
                         { id: 3, title: 'Test Title', senderCity: 'Test City', startDate: '2023-01-01' },
-                        {
-                            id: 4,
-                            title: 'Test Title',
-                            senderCity: 'Test City',
-                            startDate: '2023-01-01',
-                        },
                     ]}
                     filters={[
                         {
