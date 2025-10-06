@@ -28,11 +28,6 @@ function App() {
                             name: 'startDate',
                             placeholder: 'От',
                         },
-                        {
-                            type: FilterType.SELECT,
-                            name: 'startDate',
-                            placeholder: 'От',
-                        },
                     ]}
                     handleRowClick={(row) => {
                         console.log(row);
