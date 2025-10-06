@@ -31,11 +31,6 @@ function App() {
                         {
                             title: 'Город отправителя',
                             dataIndex: 'senderCity',
-                            render: () => (
-                                <>
-                                    <span>Km</span>
-                                </>
-                            ),
                         },
                     ]}
                 />
