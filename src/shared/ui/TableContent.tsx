@@ -1,6 +1,5 @@
 import { Table, TableColumnsType, TableProps } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
-// import { FiltersContainer, IFilterItem } from './Filter/FilterContainer';
 import { TableRowSelection } from 'antd/es/table/interface';
 import { IFilterItem } from '@shared/model';
 import { FiltersContainer } from './Filter/FilterContainer';

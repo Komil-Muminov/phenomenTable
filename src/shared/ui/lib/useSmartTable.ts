@@ -2,14 +2,9 @@ import { useDynamicSearchParams, useGetQuery } from '@shared/lib';
 import { useEffect, useMemo, useRef, useState } from 'react';
 // import { formatDatesInObject } from '@';
 import { formatDatesInObject } from '@shared/utils';
+import { IFilterItem } from '@shared/model';
 
 const DEFAULT_PAGE_SIZE = 10;
-
-interface IFilterItem {
-    name: string;
-    transform?: (value: any, options?: any[]) => any;
-    options?: Array<{ label: string; value: any }>;
-}
 
 interface UseSmartTableOptions<RecordType, ResponseType> {
     url?: string;

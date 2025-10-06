@@ -1,8 +1,6 @@
 import { FC, useEffect, useState } from 'react';
 import { Input } from 'antd';
-// import { useDebouncedCallback, useDynamicSearchParams } from '@hooks';
 import { useDynamicSearchParams, useDebouncedCallback } from '@shared/lib';
-// import { IFilterItem } from './';
 import { IFilterItem } from '@shared/model';
 
 interface IProps {
