@@ -5,7 +5,7 @@ function App() {
     return (
         <div className="!bg-red-500">
             <div className="!flex !flex-col !justify-end !bg-red-500">
-                {/* Сделать по клику модалку изменения */}
+                {/* Сделать по клику модалку изменения для смартТейбл */}
                 <SmartTable
                     url={ApiRoutes.TEST_API}
                     dataSource={[
