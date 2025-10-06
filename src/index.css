@@ -1,16 +1,4 @@
 @import 'tailwindcss';
-
-@theme {
-    --text-sm: 12px;
-    --text-md: 14px;
-    --text-lg: 16px;
-    --text-xl: 18px;
-
-    --color-gray-base: #2d3748;
-    --color-gray-light: #66727f;
-    --color-green-base: #48bb78;
-}
-
 body {
     padding: 0;
     margin: 0;
