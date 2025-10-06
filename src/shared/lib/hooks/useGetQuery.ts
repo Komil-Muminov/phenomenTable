@@ -7,7 +7,7 @@ interface IUseGetQueryOptions<TRequest = any, TResponse = any, TSelect = any> {
     url: string;
     method?: 'GET' | 'POST';
     params?: TRequest;
-    useToken?: boolean; // Опция для добавления токена
+    useToken?: boolean;
     options?: Partial<UseQueryOptions<TResponse, unknown, TSelect>>;
 }
 

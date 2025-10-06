@@ -82,11 +82,15 @@ export function TableContent<RecordType = any>(props: TableContentProps<RecordTy
           ];
 
     return (
-        <>
+        <div>
             {/* Filters */}
             {filters && !hideFilters && (
-                <div className={`flex flex-col justify-end sm:flex-row sm:items-center ${style} mb-4 gap-4`}>
-                    {title && <h2 className="text-base sm:text-lg font-semibold sm:mr-auto">{title}</h2>}
+                <div className={`!flex !flex-col !justify-end !sm:flex-row sm:items-center ${style}`}>
+                    {title && (
+                        <h2 className="text-base sm:text-lg font-semibold sm:mr-auto">
+                            {title}
+                        </h2>
+                    )}
                     <div className="flex !items-center gap-3 w-full sm:w-auto">
                         <FiltersContainer
                             filters={filters}
@@ -103,7 +107,6 @@ export function TableContent<RecordType = any>(props: TableContentProps<RecordTy
                     </div>
                 </div>
             )}
-
             {/* Table */}
             <div className={disableScrollX ? '' : 'overflow-x-auto'}>
                 <Table
@@ -139,6 +142,6 @@ export function TableContent<RecordType = any>(props: TableContentProps<RecordTy
                     }
                 />
             </div>
-        </>
+        </div>
     );
 }

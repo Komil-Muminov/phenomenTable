@@ -81,7 +81,7 @@ export function SmartTable<RecordType = any, ResponseType = any>(props: IProps<R
     };
 
     return (
-        <div className="bg-white rounded-2xl py-2 px-2 sm:py-4 sm:px-5">
+        <div className="sm:p-5">
             {props.customRender ? (
                 props.customRender(tableLogic.tableData, tableLogic.total)
             ) : (
