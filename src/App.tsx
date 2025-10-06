@@ -1,16 +1,12 @@
-// import { BrowserRouter as Router } from 'react-router-dom';
-// import Layout from './components/Layout';
-// import HomePage from './components/Homepage';
-
 import { FilterType } from '@shared/model';
 import { SmartTable } from './shared/ui/SmartTable';
-// import MemberPage from './components/MemberPage';
+import { ApiRoutes } from '@shared/config';
 function App() {
     return (
         <div className="!bg-red-500">
             <div className="!flex !flex-col !justify-end !bg-red-500">
                 <SmartTable
-                    url="ss"
+                    url={ApiRoutes.TEST_API}
                     dataSource={[
                         { id: 1, title: 'Test Title', senderCity: 'Test City', startDate: '2023-01-01' },
                         { id: 2, title: 'Test Title', senderCity: 'Test City', startDate: '2023-01-01' },
@@ -53,5 +49,4 @@ function App() {
         </div>
     );
 }
-
 export default App;
