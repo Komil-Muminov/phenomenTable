@@ -42,7 +42,7 @@ function App() {
                             title: 'Действия',
                             render: (item) => (
                                 <div className="flex gap-3">
-                                    <Button className="" type="primary" onClick={() => console.log(item)}>
+                                    <Button type="primary" onClick={() => console.log(item)}>
                                         KM
                                     </Button>
                                     <Button>Редактировать</Button>
