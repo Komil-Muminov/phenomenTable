@@ -6,7 +6,7 @@ import { useSmartTable, useTableSelection } from './lib';
 import { IFilterItem } from '@shared/model';
 import React, { useState } from 'react';
 import { ViewModal } from './ViewModal';
-import { ViewModalColumn } from './ViewModal'; // Импортируем ViewModalColumn для возможного использования
+import { ViewModalColumn } from './ViewModal'; 
 
 const shallowEqual = (objA: any, objB: any) => {
     if (objA === objB) return true;
@@ -59,11 +59,8 @@ interface IProps<RecordType, ResponseType> {
     requestTransform?: (params: any) => any;
     responseTransform?: (response: any) => ResponseType;
     offlineMode?: OfflineConfig;
-    // Новые props для модалки
     enableViewModal?: boolean;
     viewModalTitle?: string;
-    // 💡 ИСПРАВЛЕНО: Используем TableColumnsType, который совместим с ViewModalColumn,
-    // или сам ViewModalColumn. Используем TableColumnsType<RecordType> для совместимости с props.columns.
     viewModalColumns?: TableColumnsType<RecordType>;
 }
 

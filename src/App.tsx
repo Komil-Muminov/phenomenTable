@@ -2,7 +2,12 @@ import { FilterType } from '@shared/model';
 import { SmartTable } from './shared/ui/SmartTable';
 import { ApiRoutes } from '@shared/config';
 import { Button } from 'antd';
+import { useState } from 'react';
 function App() {
+    const [state, setState] = useState({
+        isEdit: false,
+        isDelete: false,
+    });
     return (
         <div>
             <div className="!flex !flex-col !justify-end">
@@ -24,7 +29,7 @@ function App() {
                         console.log(row);
                     }}
                     searchButton={true}
-                    enableViewModal={true}
+                    enableViewModal={!state.isEdit || !state.isDelete}
                     handleSelectionChange={(selectedRowKeys: any, selectedRows: any) => {
                         console.log('Selected Row Keys:', selectedRowKeys);
                         console.log('Selected Rows:', selectedRows);
@@ -42,7 +47,13 @@ function App() {
                             title: 'Действия',
                             render: (item) => (
                                 <div className="flex gap-3">
-                                    <Button type="primary" onClick={() => console.log(item)}>
+                                    <Button
+                                        type="primary"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            console.log(item);
+                                        }}
+                                    >
                                         KM
                                     </Button>
                                     <Button>Редактировать</Button>
