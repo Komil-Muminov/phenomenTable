@@ -4,6 +4,17 @@ import { useTableDownload } from '@shared/lib/hooks/hooks';
 import { TableContent } from './TableContent';
 import { useSmartTable, useTableSelection } from './lib';
 import { IFilterItem } from '@shared/model';
+import React, { useState } from 'react';
+import { ViewModal } from './ViewModal';
+import { ViewModalColumn } from './ViewModal'; // Импортируем ViewModalColumn для возможного использования
+
+const shallowEqual = (objA: any, objB: any) => {
+    if (objA === objB) return true;
+    const keysA = Object.keys(objA);
+    const keysB = Object.keys(objB);
+    if (keysA.length !== keysB.length) return false;
+    return keysA.every((key) => objA[key] === objB[key]);
+};
 
 interface IDownloadButton {
     url: string;
@@ -40,6 +51,7 @@ interface IProps<RecordType, ResponseType> {
     searchButtonIcon?: React.ReactNode;
     expandable?: TableProps<RecordType>['expandable'];
     disableScrollX?: boolean;
+    virtual?: boolean;
     downloadButton?: IDownloadButton;
     downloadPayload?: object;
     showDownloadBtn?: boolean;
@@ -47,10 +59,20 @@ interface IProps<RecordType, ResponseType> {
     requestTransform?: (params: any) => any;
     responseTransform?: (response: any) => ResponseType;
     offlineMode?: OfflineConfig;
+    // Новые props для модалки
+    enableViewModal?: boolean;
+    viewModalTitle?: string;
+    // 💡 ИСПРАВЛЕНО: Используем TableColumnsType, который совместим с ViewModalColumn,
+    // или сам ViewModalColumn. Используем TableColumnsType<RecordType> для совместимости с props.columns.
+    viewModalColumns?: TableColumnsType<RecordType>;
 }
 
 export function SmartTable<RecordType = any, ResponseType = any>(props: IProps<RecordType, ResponseType>) {
-    const { downloadButton, downloadPayload } = props;
+    const { downloadButton, downloadPayload, virtual = false, enableViewModal = false } = props;
+
+    // State для модалки
+    const [selectedRow, setSelectedRow] = useState<RecordType | null>(null);
+    const [modalVisible, setModalVisible] = useState(false);
 
     const tableLogic = useSmartTable<RecordType, ResponseType>({
         url: props.url,
@@ -66,7 +88,7 @@ export function SmartTable<RecordType = any, ResponseType = any>(props: IProps<R
     const selection = useTableSelection<any>({
         data: tableLogic.tableData,
         rowKey: 'id',
-        onSelectionChange: props.handleSelectionChange, // ← теперь мы используем handleSelectionChange
+        onSelectionChange: props.handleSelectionChange,
     });
 
     const { handleDownload, downloadPending } = useTableDownload({ downloadButton });
@@ -80,42 +102,74 @@ export function SmartTable<RecordType = any, ResponseType = any>(props: IProps<R
         tableLogic.setParams('pageSize', pageSize);
     };
 
+    // Обработчик клика на строку
+    const handleRowClickInternal = (row: RecordType) => {
+        if (enableViewModal) {
+            setSelectedRow(row);
+            setModalVisible(true);
+        }
+        props.handleRowClick?.(row);
+    };
+
+    const handleCloseModal = () => {
+        setModalVisible(false);
+        setSelectedRow(null);
+    };
+
+    const MemoizedTableContent = React.memo(
+        (memoProps: any) => <TableContent {...memoProps} virtual={virtual} />,
+        (prev, next) => shallowEqual(prev, next),
+    );
+
     return (
-        <div className="sm:p-5">
-            {props.customRender ? (
-                props.customRender(tableLogic.tableData, tableLogic.total)
-            ) : (
-                <TableContent
-                    tableData={tableLogic.tableData}
-                    columns={props.columns}
-                    total={tableLogic.total}
-                    isLoading={tableLogic.isLoading}
-                    filters={props.filters}
-                    searchButton={props.searchButton}
-                    searchButtonText={props.searchButtonText}
-                    searchButtonIcon={props.searchButtonIcon}
-                    onApplyFilters={tableLogic.handleApplyFilters}
-                    onResetFilters={tableLogic.handleResetFilters}
-                    handleRowClick={props.handleRowClick}
-                    rowClassName={props.rowClassName}
-                    rowSelection={props.rowSelection || selection.rowSelection}
-                    idColumnHidden={props.idColumnHidden}
-                    hideFilters={props.hideFilters}
-                    title={props.title}
-                    style={props.style}
-                    hiddenPagination={props.hiddenPagination}
-                    expandable={props.expandable}
-                    disableScrollX={props.disableScrollX}
-                    pageNumber={tableLogic.pageNumber}
-                    pageSize={tableLogic.pageSize}
-                    onPageChange={handlePageChange}
-                    className={props.className}
-                    downloadButton={downloadButton}
-                    downloadPending={downloadPending}
-                    showDownloadBtn={props.showDownloadBtn}
-                    onDownload={handleDownloadClick}
+        <>
+            <div className="sm:p-5">
+                {props.customRender ? (
+                    props.customRender(tableLogic.tableData, tableLogic.total)
+                ) : (
+                    <MemoizedTableContent
+                        tableData={tableLogic.tableData}
+                        columns={props.columns}
+                        total={tableLogic.total}
+                        isLoading={tableLogic.isLoading}
+                        filters={props.filters}
+                        searchButton={props.searchButton}
+                        searchButtonText={props.searchButtonText}
+                        searchButtonIcon={props.searchButtonIcon}
+                        onApplyFilters={tableLogic.handleApplyFilters}
+                        onResetFilters={tableLogic.handleResetFilters}
+                        handleRowClick={handleRowClickInternal}
+                        rowClassName={props.rowClassName}
+                        rowSelection={props.rowSelection || selection.rowSelection}
+                        idColumnHidden={props.idColumnHidden}
+                        hideFilters={props.hideFilters}
+                        title={props.title}
+                        style={props.style}
+                        hiddenPagination={props.hiddenPagination}
+                        expandable={props.expandable}
+                        disableScrollX={props.disableScrollX}
+                        pageNumber={tableLogic.pageNumber}
+                        pageSize={tableLogic.pageSize}
+                        onPageChange={handlePageChange}
+                        className={props.className}
+                        downloadButton={downloadButton}
+                        downloadPending={downloadPending}
+                        showDownloadBtn={props.showDownloadBtn}
+                        onDownload={handleDownloadClick}
+                    />
+                )}
+            </div>
+
+            {/* Модалка просмотра */}
+            {enableViewModal && (
+                <ViewModal
+                    visible={modalVisible}
+                    onClose={handleCloseModal}
+                    data={selectedRow}
+                    title={props.viewModalTitle}
+                    columns={(props.viewModalColumns || props.columns) as ViewModalColumn<RecordType>[]}
                 />
             )}
-        </div>
+        </>
     );
 }

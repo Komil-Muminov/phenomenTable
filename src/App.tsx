@@ -10,8 +10,7 @@ function App() {
                     url={ApiRoutes.TEST_API}
                     dataSource={[
                         { id: 1, title: 'Test Title', senderCity: 'Test City', startDate: '2023-01-01' },
-                        { id: 2, title: 'Test Title', senderCity: 'Test City', startDate: '2023-01-01' },
-                        { id: 3, title: 'Test Title', senderCity: 'Test City', startDate: '2023-01-01' },
+                        { id: 3, title: 'KM', km: 'KM', startDate: '2023-01-01' },
                     ]}
                     filters={[
                         {
@@ -24,6 +23,7 @@ function App() {
                         console.log(row);
                     }}
                     searchButton={true}
+                    enableViewModal={true}
                     handleSelectionChange={(selectedRowKeys: any, selectedRows: any) => {
                         console.log('Selected Row Keys:', selectedRowKeys);
                         console.log('Selected Rows:', selectedRows);
@@ -32,6 +32,10 @@ function App() {
                         {
                             title: 'Город отправителя',
                             dataIndex: 'senderCity',
+                        },
+                        {
+                            title: 'Километраж',
+                            dataIndex: 'km',
                         },
                     ]}
                 />

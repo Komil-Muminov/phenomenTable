@@ -3,6 +3,7 @@ import { SearchOutlined } from '@ant-design/icons';
 import { TableRowSelection } from 'antd/es/table/interface';
 import { IFilterItem } from '@shared/model';
 import { FiltersContainer } from './Filter/FilterContainer';
+import React, { useMemo } from 'react';
 
 interface TableContentProps<RecordType> {
     tableData: RecordType[];
@@ -25,6 +26,7 @@ interface TableContentProps<RecordType> {
     hiddenPagination?: boolean;
     expandable?: TableProps<RecordType>['expandable'];
     disableScrollX?: boolean;
+    virtual?: boolean; // Новый prop
     pageNumber: number;
     pageSize: number;
     onPageChange: (page: number, pageSize: number) => void;
@@ -35,7 +37,16 @@ interface TableContentProps<RecordType> {
     onDownload?: () => void;
 }
 
-export function TableContent<RecordType = any>(props: TableContentProps<RecordType>) {
+// Custom shallowEqual для memo (если lodash нет)
+const shallowEqual = (objA: any, objB: any) => {
+    if (objA === objB) return true;
+    const keysA = Object.keys(objA);
+    const keysB = Object.keys(objB);
+    if (keysA.length !== keysB.length) return false;
+    return keysA.every((key) => objA[key] === objB[key]);
+};
+
+function TableContentComponent<RecordType = any>(props: TableContentProps<RecordType>) {
     const {
         tableData,
         columns,
@@ -57,6 +68,7 @@ export function TableContent<RecordType = any>(props: TableContentProps<RecordTy
         hiddenPagination,
         expandable,
         disableScrollX,
+        virtual = false,
         pageNumber,
         pageSize,
         onPageChange,
@@ -67,30 +79,36 @@ export function TableContent<RecordType = any>(props: TableContentProps<RecordTy
         onDownload,
     } = props;
 
-    const columnsWithId = idColumnHidden
-        ? columns
-        : [
-              {
-                  title: 'ID',
-                  dataIndex: 'id',
-                  key: 'id',
-                  render: (_: any, record: any) => record.id,
-                  responsive: ['md'] as any,
-                  width: '100px',
-              },
-              ...columns,
-          ];
+    // useMemo для columnsWithId
+    const columnsWithId = useMemo(() => {
+        if (idColumnHidden) {
+            return columns;
+        }
+        return [
+            {
+                title: 'ID',
+                dataIndex: 'id',
+                key: 'id',
+                render: (_: any, record: any) => record.id,
+                responsive: ['md'] as any,
+                width: '100px',
+            },
+            ...columns,
+        ];
+    }, [columns, idColumnHidden]);
+
+    const handleRowClickWithStop = (record: any, e: React.MouseEvent<HTMLElement>) => {
+        if (expandable) return; 
+        e.stopPropagation();
+        handleRowClick?.(record);
+    };
 
     return (
         <div>
             {/* Filters */}
             {filters && !hideFilters && (
                 <div className={`!flex !flex-col !justify-end !sm:flex-row sm:items-center ${style}`}>
-                    {title && (
-                        <h2 className="text-base sm:text-lg font-semibold sm:mr-auto">
-                            {title}
-                        </h2>
-                    )}
+                    {title && <h2 className="text-base sm:text-lg font-semibold sm:mr-auto">{title}</h2>}
                     <div className="flex !items-center gap-3 w-full sm:w-auto">
                         <FiltersContainer
                             filters={filters}
@@ -111,6 +129,7 @@ export function TableContent<RecordType = any>(props: TableContentProps<RecordTy
             <div className={disableScrollX ? '' : 'overflow-x-auto'}>
                 <Table
                     expandable={expandable}
+                    virtual={virtual} // Virtualization
                     className={`custom-table cursor-pointer ${className} sm:size-default`}
                     loading={isLoading}
                     dataSource={tableData}
@@ -119,7 +138,7 @@ export function TableContent<RecordType = any>(props: TableContentProps<RecordTy
                     rowClassName={rowClassName}
                     rowSelection={rowSelection}
                     onRow={(record) => ({
-                        onClick: () => handleRowClick?.(record),
+                        onClick: (e: React.MouseEvent<HTMLElement>) => handleRowClickWithStop(record, e),
                     })}
                     scroll={disableScrollX ? undefined : { x: 'max-content' }}
                     size="small"
@@ -145,3 +164,6 @@ export function TableContent<RecordType = any>(props: TableContentProps<RecordTy
         </div>
     );
 }
+
+// Оборачиваем в memo и экспортируем
+export const TableContent = React.memo(TableContentComponent, shallowEqual);
