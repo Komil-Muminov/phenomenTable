@@ -123,7 +123,7 @@ export function SmartTable<RecordType = any, ResponseType = any>(props: IProps<R
 
     return (
         <>
-            <div className="sm:p-5">
+            <div className="sm:p-4">
                 {props.customRender ? (
                     props.customRender(tableLogic.tableData, tableLogic.total)
                 ) : (

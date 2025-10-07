@@ -1,10 +1,11 @@
 import { FilterType } from '@shared/model';
 import { SmartTable } from './shared/ui/SmartTable';
 import { ApiRoutes } from '@shared/config';
+import { Button } from 'antd';
 function App() {
     return (
-        <div className="!bg-red-500">
-            <div className="!flex !flex-col !justify-end !bg-red-500">
+        <div>
+            <div className="!flex !flex-col !justify-end">
                 {/* Сделать по клику модалку изменения для смартТейбл */}
                 <SmartTable
                     url={ApiRoutes.TEST_API}
@@ -36,6 +37,17 @@ function App() {
                         {
                             title: 'Километраж',
                             dataIndex: 'km',
+                        },
+                        {
+                            title: 'Действия',
+                            render: (item) => (
+                                <div className="">
+                                    <Button className="" type="primary" onClick={() => console.log(item)}>
+                                        KM
+                                    </Button>
+                                    <Button>Редактировать</Button>
+                                </div>
+                            ),
                         },
                     ]}
                 />
