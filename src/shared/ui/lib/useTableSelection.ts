@@ -27,7 +27,7 @@ export const useTableSelection = <T extends Record<string, any>>(options: any) =
     );
 
     const selectAll = useCallback(() => {
-        const allKeys = data.map(getRowKey);
+        const allKeys = data?.map(getRowKey);
         handleSelectionChange(allKeys, data);
     }, [data, getRowKey, handleSelectionChange]);
 
@@ -37,15 +37,15 @@ export const useTableSelection = <T extends Record<string, any>>(options: any) =
 
     const invertSelection = useCallback(() => {
         const currentKeySet = new Set(selectedRowKeys);
-        const invertedKeys = data.filter((record: any) => !currentKeySet.has(getRowKey(record))).map(getRowKey);
-        const invertedRows = data.filter((record: any) => !currentKeySet.has(getRowKey(record)));
+        const invertedKeys = data?.filter((record: any) => !currentKeySet.has(getRowKey(record)))?.map(getRowKey);
+        const invertedRows = data?.filter((record: any) => !currentKeySet.has(getRowKey(record)));
         handleSelectionChange(invertedKeys, invertedRows);
     }, [data, selectedRowKeys, getRowKey, handleSelectionChange]);
 
     const selectByCondition = useCallback(
         (condition: (record: T) => boolean) => {
-            const filteredData = data.filter(condition);
-            const keys = filteredData.map(getRowKey);
+            const filteredData = data?.filter(condition);
+            const keys = filteredData?.map(getRowKey);
             handleSelectionChange(keys, filteredData);
         },
         [data, getRowKey, handleSelectionChange],

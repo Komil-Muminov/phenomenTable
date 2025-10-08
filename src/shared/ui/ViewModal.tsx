@@ -14,7 +14,6 @@ interface ViewModalProps<T = any> {
     onClose: () => void;
     data: T | null;
     title?: string;
-    // Используем исправленный тип
     columns?: ViewModalColumn<T>[];
 }
 
@@ -27,18 +26,15 @@ export function ViewModal<T = any>({
 }: ViewModalProps<T>) {
     if (!data) return null;
 
-    // Фильтруем только колонки с dataIndex (исключаем служебные колонки типа action)
-    // 💡 Приводим тип к ViewModalColumn<T>[] для корректной работы в `fields`
     const validColumns = columns.filter((col) => col.dataIndex) as ViewModalColumn<T>[];
-
     // Если columns не переданы или пусты, показываем все поля
     const fields =
         validColumns.length > 0
             ? validColumns
-            : (Object.keys(data).map((key) => ({
+            : (Object.keys(data)?.map((key) => ({
                   title: key,
                   dataIndex: key,
-              })) as ViewModalColumn<T>[]); // Приводим к типу ViewModalColumn<T>[]
+              })) as ViewModalColumn<T>[]); 
 
     // Функция для получения значения по dataIndex
     const getValueByPath = (obj: any, path: string | string[]): any => {
@@ -51,7 +47,7 @@ export function ViewModal<T = any>({
     return (
         <Modal title={title} open={visible} onCancel={onClose} footer={null} width={700}>
             <Descriptions bordered column={1}>
-                {fields.map((field, index) => {
+                {fields?.map((field, index) => {
                     const value = getValueByPath(data, field.dataIndex!);
                     const displayValue = field.render ? field.render(value, data, index) : value ?? '-';
                     const key =

@@ -28,7 +28,7 @@ export const useDynamicSearchParams = (scope?: string): UseDynamicSearchParamsRe
 
         if (scope) {
             paramsObject = Object.fromEntries(
-                Object.keys(paramsObject).map((key) => [key.replace(/^.*?-/, ''), paramsObject[key]]),
+                Object.keys(paramsObject)?.map((key) => [key.replace(/^.*?-/, ''), paramsObject[key]]),
             );
         }
 

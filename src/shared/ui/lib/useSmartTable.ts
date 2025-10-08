@@ -195,7 +195,7 @@ export const useSmartTable = <RecordType = any, ResponseType = any>(
 
     // Подготовка данных таблицы
     const rawItems = dataSource ?? (data ? getItemsFromResponse(data) : []);
-    const tableData = rawItems.map(formatDatesInObject);
+    const tableData = rawItems?.map(formatDatesInObject);
 
     return {
         tableData,

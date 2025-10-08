@@ -2,10 +2,6 @@ import { useMemo } from 'react';
 import { message } from 'antd';
 import { IFilterItem, IDownloadButton } from '@shared/model';
 import { useMutationQuery } from './useMutationQuery';
-/**
- * Вспомогательная функция для скачивания файла (предполагаем, что она не является внешней утилитой).
- * В реальном проекте, скорее всего, это будет отдельный файл в папке /utils.
- */
 export const downloadFile = async (url: string, filename: string) => {
     try {
         const link = document.createElement('a');
@@ -25,7 +21,7 @@ export const downloadFile = async (url: string, filename: string) => {
  */
 export const useFilterValues = (params: Record<string, any>, filters: IFilterItem[]) => {
     // Массив зависимостей для useMemo
-    const deps = filters.map((filter) => params[filter.name]);
+    const deps = filters?.map((filter) => params[filter.name]);
 
     return useMemo(
         () =>
@@ -35,7 +31,6 @@ export const useFilterValues = (params: Record<string, any>, filters: IFilterIte
                 if (paramValue !== undefined) {
                     const value = filter.formatValue ? filter.formatValue(paramValue) : paramValue;
 
-                    // Строгое сравнение и проверка на пустую строку/массив/null
                     if (
                         value !== '' &&
                         value !== null &&
@@ -47,8 +42,6 @@ export const useFilterValues = (params: Record<string, any>, filters: IFilterIte
                 }
                 return acc;
             }, {} as Record<string, any>),
-        // Используем deps, чтобы useMemo зависел от текущих значений фильтров в params
-        // eslint-disable-next-line react-hooks/exhaustive-deps
         [...deps, filters],
     );
 };

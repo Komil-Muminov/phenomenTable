@@ -61,7 +61,7 @@ export const FiltersContainer = (props: FiltersContainerProps) => {
     return (
         <div className="!flex !flex-wrap p-4 !gap-2 sm:!gap-3 !w-full sm:!w-auto lg:p-0">
             {/* Фильтры */}
-            {filters.map(renderFilter)}
+            {filters?.map(renderFilter)}
 
             {/* Кнопки действий */}
             <div className="!flex !flex-wrap !gap-2 sm:!gap-3 !w-full sm:!w-auto">
