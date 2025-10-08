@@ -48,6 +48,7 @@ export const FiltersContainer = (props: FiltersContainerProps) => {
                     </div>
                 );
             case 'date':
+            case 'date-range':
                 return (
                     <div key={key} className="!w-full sm:!w-48">
                         <FilterDate config={filter} customClass="!w-full" />
@@ -59,7 +60,7 @@ export const FiltersContainer = (props: FiltersContainerProps) => {
     };
 
     return (
-        <div className="!flex !flex-wrap !gap-2 sm:!gap-3 !w-full sm:!w-aut p-4">
+        <div className="!flex !flex-wrap !gap-2 sm:!gap-3 !w-full sm:!w-auto">
             {/* Фильтры */}
             {filters.map(renderFilter)}
 

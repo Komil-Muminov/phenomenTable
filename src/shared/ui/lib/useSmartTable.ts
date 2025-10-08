@@ -1,6 +1,5 @@
 import { useDynamicSearchParams, useGetQuery } from '@shared/lib';
 import { useEffect, useMemo, useRef, useState } from 'react';
-// import { formatDatesInObject } from '@';
 import { formatDatesInObject } from '@shared/utils';
 import { IFilterItem } from '@shared/model';
 
@@ -40,9 +39,19 @@ export const useSmartTable = <RecordType = any, ResponseType = any>(
     // Получаем значения фильтров из URL
     const filterValues = useMemo(() => {
         return filters.reduce((acc, filter) => {
-            const value = searchParams[filter.name];
-            if (value !== undefined && value !== '') {
-                acc[filter.name] = value;
+            // Для date-range берем оба параметра
+            if (filter.type === 'date-range') {
+                const fromValue = searchParams[`${filter.name}From`];
+                const toValue = searchParams[`${filter.name}To`];
+                if (fromValue && toValue) {
+                    acc[`${filter.name}From`] = fromValue;
+                    acc[`${filter.name}To`] = toValue;
+                }
+            } else {
+                const value = searchParams[filter.name];
+                if (value !== undefined && value !== '') {
+                    acc[filter.name] = value;
+                }
             }
             return acc;
         }, {} as Record<string, any>);
@@ -53,7 +62,9 @@ export const useSmartTable = <RecordType = any, ResponseType = any>(
         const filtersToTransform = searchButton ? pendingFilters : filterValues;
 
         return Object.keys(filtersToTransform).reduce((acc, key) => {
-            const filterConfig = filters.find((f) => f.name === key);
+            // Находим оригинальное имя фильтра (без From/To)
+            const baseFilterName = key.replace(/From$|To$/, '');
+            const filterConfig = filters.find((f) => f.name === baseFilterName || f.name === key);
             let value = filtersToTransform[key];
 
             if (filterConfig?.transform) {
@@ -161,7 +172,17 @@ export const useSmartTable = <RecordType = any, ResponseType = any>(
     };
 
     const handleResetFilters = () => {
-        const filterNames = filters.map((f) => f.name);
+        // Собираем все имена параметров для удаления, включая From/To для date-range
+        const filterNames: string[] = [];
+        filters.forEach((filter) => {
+            if (filter.type === 'date-range') {
+                filterNames.push(`${filter.name}From`);
+                filterNames.push(`${filter.name}To`);
+            } else {
+                filterNames.push(filter.name);
+            }
+        });
+
         deleteParams(filterNames);
         setParams('pageNumber', 1);
 

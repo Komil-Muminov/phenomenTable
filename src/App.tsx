@@ -25,6 +25,11 @@ function App() {
                             name: 'startDate',
                             placeholder: 'От',
                         },
+                        {
+                            type: FilterType.DATE_RANGE,
+                            name: 'dateRange',
+                            placeholder: 'От и до',
+                        },
                     ]}
                     handleRowClick={(row) => {
                         console.log(row);
