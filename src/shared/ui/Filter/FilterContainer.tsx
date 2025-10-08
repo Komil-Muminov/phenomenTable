@@ -34,39 +34,75 @@ export const FiltersContainer = (props: FiltersContainerProps) => {
 
     const renderFilter = (filter: IFilterItem) => {
         const key = filter.name;
-
         switch (filter.type) {
             case 'input':
-                return <FilterInput key={key} config={filter} customClass="w-full sm:w-48" />;
+                return (
+                    <div key={key} className="!w-full sm:!w-48">
+                        <FilterInput config={filter} customClass="!w-full" />
+                    </div>
+                );
             case 'select':
-                return <FilterSelect key={key} config={filter} customClass="w-full sm:w-48" />;
+                return (
+                    <div key={key} className="!w-full sm:!w-48">
+                        <FilterSelect config={filter} customClass="!w-full" />
+                    </div>
+                );
             case 'date':
-                return <FilterDate key={key} config={filter} customClass="w-full sm:w-48" />;
+                return (
+                    <div key={key} className="!w-full sm:!w-48">
+                        <FilterDate config={filter} customClass="!w-full" />
+                    </div>
+                );
             default:
                 return null;
         }
     };
 
     return (
-        <Space wrap className="w-full sm:w-auto">
+        <div className="!flex !flex-wrap !gap-2 sm:!gap-3 !w-full sm:!w-aut p-4">
+            {/* Фильтры */}
             {filters.map(renderFilter)}
 
-            {searchMode && (
-                <Button type="primary" icon={searchButtonIcon} onClick={onApplyFilters} loading={isLoading}>
-                    {searchButtonText}
-                </Button>
-            )}
+            {/* Кнопки действий */}
+            <div className="!flex !flex-wrap !gap-2 sm:!gap-3 !w-full sm:!w-auto">
+                {searchMode && (
+                    <Button
+                        type="primary"
+                        icon={searchButtonIcon}
+                        onClick={onApplyFilters}
+                        loading={isLoading}
+                        className="!flex-1 sm:!flex-none !min-w-[100px]"
+                    >
+                        <span className="!hidden sm:!inline">{searchButtonText}</span>
+                        <span className="!inline sm:!hidden">Поиск</span>
+                    </Button>
+                )}
 
-            <Button type="primary" danger icon={<ClearOutlined />} onClick={onResetFilters} disabled={isLoading}>
-                Сбросить
-            </Button>
-
-            {showDownloadBtn && onDownload && (
-                <Button icon={<DownloadOutlined />} onClick={onDownload} loading={downloadPending}>
-                    Скачать
+                <Button
+                    type="primary"
+                    danger
+                    icon={<ClearOutlined />}
+                    onClick={onResetFilters}
+                    disabled={isLoading}
+                    className="!flex-1 sm:!flex-none !min-w-[100px]"
+                >
+                    <span className="!hidden sm:!inline">Сбросить</span>
+                    <span className="!inline sm:!hidden">Очистить</span>
                 </Button>
-            )}
-        </Space>
+
+                {showDownloadBtn && onDownload && (
+                    <Button
+                        icon={<DownloadOutlined />}
+                        onClick={onDownload}
+                        loading={downloadPending}
+                        className="!flex-1 sm:!flex-none !min-w-[100px]"
+                    >
+                        <span className="!hidden sm:!inline">Скачать</span>
+                        <span className="!inline sm:!hidden">Excel</span>
+                    </Button>
+                )}
+            </div>
+        </div>
     );
 };
 

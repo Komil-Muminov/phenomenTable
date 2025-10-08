@@ -98,7 +98,7 @@ function TableContentComponent<RecordType = any>(props: TableContentProps<Record
     }, [columns, idColumnHidden]);
 
     const handleRowClickWithStop = (record: any, e: React.MouseEvent<HTMLElement>) => {
-        if (expandable) return; 
+        if (expandable) return;
         e.stopPropagation();
         handleRowClick?.(record);
     };
@@ -107,7 +107,7 @@ function TableContentComponent<RecordType = any>(props: TableContentProps<Record
         <div>
             {/* Filters */}
             {filters && !hideFilters && (
-                <div className={`!flex !flex-col !justify-end !sm:flex-row sm:items-center ${style}`}>
+                <div className={`!flex !flex-col  !items-end !sm:flex-row !sm:!items-center ${style}`}>
                     {title && <h2 className="text-base sm:text-lg font-semibold sm:mr-auto">{title}</h2>}
                     <div className="flex !items-center gap-3 w-full sm:w-auto">
                         <FiltersContainer
