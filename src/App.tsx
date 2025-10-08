@@ -14,6 +14,7 @@ function App() {
                 {/* Сделать по клику модалку изменения для смартТейбл */}
                 <SmartTable
                     url={ApiRoutes.TEST_API}
+                    idColumnHidden={true}
                     dataSource={[
                         { id: 1, title: 'Test Title', senderCity: 'Test City', startDate: '2023-01-01' },
                         { id: 3, title: 'KM', km: 'KM', startDate: '2023-01-01' },
