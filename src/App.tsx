@@ -10,7 +10,7 @@ function App() {
     });
     return (
         <div>
-            <div className="!flex !flex-col !justify-end">
+            <div className="!flex !flex-col !justify-end px-2 lg:p-0">
                 {/* Сделать по клику модалку изменения для смартТейбл */}
                 <SmartTable
                     url={ApiRoutes.TEST_API}
