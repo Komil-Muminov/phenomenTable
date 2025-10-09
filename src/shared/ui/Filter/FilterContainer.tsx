@@ -95,7 +95,7 @@ export const FiltersContainer = (props: FiltersContainerProps) => {
                         icon={<DownloadOutlined />}
                         onClick={onDownload}
                         loading={downloadPending}
-                        className="!flex-1 sm:!flex-none !min-w-[100px]"
+                        className="!flex-1 !bg-emerald-500 !text-white sm:!flex-none !min-w-[100px]"
                     >
                         <span className="!hidden sm:!inline">Скачать</span>
                         <span className="!inline sm:!hidden">Excel</span>

@@ -14,6 +14,15 @@ function App() {
                 <SmartTable
                     url={ApiRoutes.TEST_API}
                     idColumnHidden={true}
+                    showDownloadBtn={true}
+                    downloadButton={{
+                        url: 'download',
+                        fileName: 'km',
+                        messages: {
+                            success: 'Файл успешно скачан',
+                            error: 'Ошибка при скачивание',
+                        },
+                    }}
                     dataSource={[
                         { id: 1, title: 'Test Title', senderCity: 'Test City', startDate: '2023-01-01' },
                         { id: 3, title: 'KM', km: 'KM', startDate: '2023-01-01' },

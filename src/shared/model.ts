@@ -5,7 +5,6 @@ import { TableRowSelection } from 'antd/es/table/interface';
 import React from 'react';
 
 // --- Общие типы для API ---
-
 export interface IApiResponse<RecordType> {
     items: RecordType[];
     total: number;
@@ -46,7 +45,6 @@ export interface IFilterItem {
 }
 
 // --- Типы для скачивания ---
-
 export interface IDownloadButton {
     url: string;
     fileName?: string;
