@@ -33,6 +33,7 @@ function App() {
                             type: FilterType.SELECT,
                             name: 'orderType',
                             placeholder: 'Выберите тип',
+                            transform: (value) => Number(value),
                             options: [{ label: 'КМ', value: 2 }],
                         },
                     ]}
