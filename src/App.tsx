@@ -8,6 +8,21 @@ function App() {
         isEdit: false,
         isDelete: false,
     });
+    let user = {
+        name: 'John',
+        address: {
+            city: 'New York',
+            zip: 10001,
+            cars: {
+                id: 1,
+                name: 'Prius',
+            },
+        },
+    };
+    let clonedUser = structuredClone(user);
+    let newUser = { ...user };
+    console.log(clonedUser.address === user.address);
+    // console.log(newUser);
     return (
         <div>
             <div className="!flex !flex-col !justify-end px-2 lg:p-0">
