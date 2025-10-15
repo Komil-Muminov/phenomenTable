@@ -8,6 +8,16 @@ function App() {
         isEdit: false,
         isDelete: false,
     });
+
+    class user {
+        name: string;
+        age: number;
+        constructor(name: string, age: number) {
+            this.name = name;
+            this.age = age;
+        }
+    }
+    const user1: {} = new user('John', 30);
     return (
         <div>
             <div className="!flex !flex-col !justify-end px-2 lg:p-0">
