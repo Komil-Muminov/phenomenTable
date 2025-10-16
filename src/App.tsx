@@ -8,16 +8,26 @@ function App() {
         isEdit: false,
         isDelete: false,
     });
-
+    let idSymbol = Symbol('id');
     class user {
         name: string;
         age: number;
-        constructor(name: string, age: number) {
+        [idSymbol]: number;
+        constructor(name: string, age: number, id: number) {
             this.name = name;
             this.age = age;
+            this[idSymbol] = id;
         }
     }
-    const user1: {} = new user('John', 30);
+    const users = [
+        { name: 'John', age: 30 },
+        { name: 'Alice', age: 25 },
+        { name: 'Bob', age: 40 },
+    ];
+    // for (const user of users) {
+    //     const newArr = [...newArr, users[user]];
+    //     console.log(newArr);
+    // }
     return (
         <div>
             <div className="!flex !flex-col !justify-end px-2 lg:p-0">
