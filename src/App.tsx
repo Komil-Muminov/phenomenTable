@@ -8,8 +8,9 @@ function App() {
         isEdit: false,
         isDelete: false,
     });
-    let idSymbol = Symbol('id');
+    const idSymbol: unique symbol = Symbol('id');
     class user {
+
         name: string;
         age: number;
         [idSymbol]: number;
