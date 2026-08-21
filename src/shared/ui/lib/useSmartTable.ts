@@ -117,13 +117,11 @@ export const useSmartTable = <RecordType = any, ResponseType = any>(
         data: rawData,
         isLoading,
         refetch,
-    } = url
-        ? useGetQuery({
-              url,
-              params,
-              options: { enabled: true },
-          })
-        : { data: undefined, isLoading: false, refetch: undefined };
+    } = useGetQuery({
+        url: url ?? '',
+        params,
+        options: { enabled: Boolean(url) },
+    });
 
     const data = useMemo(() => {
         return responseTransform && rawData ? responseTransform(rawData) : rawData;

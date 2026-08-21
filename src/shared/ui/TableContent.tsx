@@ -166,4 +166,4 @@ function TableContentComponent<RecordType = any>(props: TableContentProps<Record
 }
 
 // Оборачиваем в memo и экспортируем
-export const TableContent = React.memo(TableContentComponent, shallowEqual);
+export const TableContent = React.memo(TableContentComponent, shallowEqual) as typeof TableContentComponent;

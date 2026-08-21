@@ -8,14 +8,6 @@ import React, { useState } from 'react';
 import { ViewModal } from './ViewModal';
 import { ViewModalColumn } from './ViewModal'; 
 
-const shallowEqual = (objA: any, objB: any) => {
-    if (objA === objB) return true;
-    const keysA = Object.keys(objA);
-    const keysB = Object.keys(objB);
-    if (keysA.length !== keysB.length) return false;
-    return keysA.every((key) => objA[key] === objB[key]);
-};
-
 interface IDownloadButton {
     url: string;
     fileName?: string;
@@ -113,18 +105,14 @@ export function SmartTable<RecordType = any, ResponseType = any>(props: IProps<R
         setSelectedRow(null);
     };
 
-    const MemoizedTableContent = React.memo(
-        (memoProps: any) => <TableContent {...memoProps} virtual={virtual} />,
-        (prev, next) => shallowEqual(prev, next),
-    );
-
     return (
         <>
             <div className="sm:p-4">
                 {props.customRender ? (
                     props.customRender(tableLogic.tableData, tableLogic.total)
                 ) : (
-                    <MemoizedTableContent
+                    <TableContent
+                        virtual={virtual}
                         tableData={tableLogic.tableData}
                         columns={props.columns}
                         total={tableLogic.total}
