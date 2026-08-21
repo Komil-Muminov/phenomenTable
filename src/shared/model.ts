@@ -86,4 +86,11 @@ export interface IProps<RecordType, ResponseType> {
     title?: string;
     rowClassName?: (record: RecordType, index: number) => string;
     expandable?: TableProps<RecordType>['expandable'];
+    // Мобильный вид (Card / List View)
+    enableMobileCards?: boolean;
+    mobileBreakpoint?: number;
+    primaryColumnKey?: string;
+    hiddenInMobileColumns?: string[];
+    renderMobileCard?: (record: RecordType, index: number) => React.ReactNode;
 }
+

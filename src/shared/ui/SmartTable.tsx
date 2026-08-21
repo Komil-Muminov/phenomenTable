@@ -54,7 +54,14 @@ interface IProps<RecordType, ResponseType> {
     enableViewModal?: boolean;
     viewModalTitle?: string;
     viewModalColumns?: TableColumnsType<RecordType>;
+    // Мобильный вид (Card / List View)
+    enableMobileCards?: boolean;
+    mobileBreakpoint?: number;
+    primaryColumnKey?: string;
+    hiddenInMobileColumns?: string[];
+    renderMobileCard?: (record: RecordType, index: number) => React.ReactNode;
 }
+
 
 export function SmartTable<RecordType = any, ResponseType = any>(props: IProps<RecordType, ResponseType>) {
     const { downloadButton, downloadPayload, virtual = false, enableViewModal = false } = props;
@@ -141,7 +148,13 @@ export function SmartTable<RecordType = any, ResponseType = any>(props: IProps<R
                         downloadPending={downloadPending}
                         showDownloadBtn={props.showDownloadBtn}
                         onDownload={handleDownloadClick}
+                        enableMobileCards={props.enableMobileCards}
+                        mobileBreakpoint={props.mobileBreakpoint}
+                        primaryColumnKey={props.primaryColumnKey}
+                        hiddenInMobileColumns={props.hiddenInMobileColumns}
+                        renderMobileCard={props.renderMobileCard}
                     />
+
                 )}
             </div>
 

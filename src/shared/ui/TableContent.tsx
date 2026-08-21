@@ -3,6 +3,8 @@ import { SearchOutlined } from '@ant-design/icons';
 import { TableRowSelection } from 'antd/es/table/interface';
 import { IFilterItem } from '@shared/model';
 import { FiltersContainer } from './Filter/FilterContainer';
+import { MobileCardList } from './MobileCard';
+import { useMediaQuery } from './lib';
 import React, { useMemo } from 'react';
 
 interface TableContentProps<RecordType> {
@@ -26,7 +28,7 @@ interface TableContentProps<RecordType> {
     hiddenPagination?: boolean;
     expandable?: TableProps<RecordType>['expandable'];
     disableScrollX?: boolean;
-    virtual?: boolean; // Новый prop
+    virtual?: boolean;
     pageNumber: number;
     pageSize: number;
     onPageChange: (page: number, pageSize: number) => void;
@@ -35,9 +37,15 @@ interface TableContentProps<RecordType> {
     downloadPending?: boolean;
     showDownloadBtn?: boolean;
     onDownload?: () => void;
+    // Мобильный режим
+    enableMobileCards?: boolean;
+    mobileBreakpoint?: number;
+    primaryColumnKey?: string;
+    hiddenInMobileColumns?: string[];
+    renderMobileCard?: (record: RecordType, index: number) => React.ReactNode;
 }
 
-// Custom shallowEqual для memo (если lodash нет)
+// Custom shallowEqual для memo
 const shallowEqual = (objA: any, objB: any) => {
     if (objA === objB) return true;
     const keysA = Object.keys(objA);
@@ -46,7 +54,9 @@ const shallowEqual = (objA: any, objB: any) => {
     return keysA.every((key) => objA[key] === objB[key]);
 };
 
-function TableContentComponent<RecordType = any>(props: TableContentProps<RecordType>) {
+function TableContentComponent<RecordType extends Record<string, any> = any>(
+    props: TableContentProps<RecordType>,
+) {
     const {
         tableData,
         columns,
@@ -77,7 +87,15 @@ function TableContentComponent<RecordType = any>(props: TableContentProps<Record
         downloadPending,
         showDownloadBtn,
         onDownload,
+        enableMobileCards = true,
+        mobileBreakpoint = 768,
+        primaryColumnKey,
+        hiddenInMobileColumns,
+        renderMobileCard,
     } = props;
+
+    const isMobile = useMediaQuery(mobileBreakpoint);
+    const shouldShowMobileCards = enableMobileCards && isMobile;
 
     // useMemo для columnsWithId
     const columnsWithId = useMemo(() => {
@@ -107,8 +125,8 @@ function TableContentComponent<RecordType = any>(props: TableContentProps<Record
         <div>
             {/* Filters */}
             {filters && !hideFilters && (
-                <div className={`!flex !flex-col  !items-end !sm:flex-row !sm:!items-center ${style}`}>
-                    {title && <h2 className="text-base sm:text-lg font-semibold sm:mr-auto">{title}</h2>}
+                <div className={`!flex !flex-col !items-end !sm:flex-row !sm:!items-center ${style || ''}`}>
+                    {title && <h2 className="text-base sm:text-lg font-semibold sm:mr-auto mb-2 sm:mb-0">{title}</h2>}
                     <div className="flex !items-center gap-3 w-full sm:w-auto">
                         <FiltersContainer
                             filters={filters}
@@ -125,42 +143,62 @@ function TableContentComponent<RecordType = any>(props: TableContentProps<Record
                     </div>
                 </div>
             )}
-            {/* Table */}
-            <div className={disableScrollX ? '' : 'overflow-x-auto'}>
-                <Table
-                    expandable={expandable}
-                    virtual={virtual} // Virtualization
-                    className={`custom-table cursor-pointer ${className} sm:size-default`}
-                    loading={isLoading}
-                    dataSource={tableData}
+
+            {/* Отображение: Мобильные карточки или Классическая таблица */}
+            {shouldShowMobileCards ? (
+                <MobileCardList
+                    tableData={tableData}
                     columns={columnsWithId}
-                    rowKey="id"
-                    rowClassName={rowClassName}
+                    total={total}
+                    isLoading={isLoading}
+                    pageNumber={pageNumber}
+                    pageSize={pageSize}
+                    onPageChange={onPageChange}
+                    handleRowClick={handleRowClick}
                     rowSelection={rowSelection}
-                    onRow={(record) => ({
-                        onClick: (e: React.MouseEvent<HTMLElement>) => handleRowClickWithStop(record, e),
-                    })}
-                    scroll={disableScrollX ? undefined : { x: 'max-content' }}
-                    size="small"
-                    pagination={
-                        !hiddenPagination
-                            ? {
-                                  total,
-                                  current: pageNumber,
-                                  pageSize,
-                                  pageSizeOptions: [10, 20, 30],
-                                  showSizeChanger: true,
-                                  responsive: true,
-                                  showQuickJumper: false,
-                                  showTotal: (total, range) => (
-                                      <span className="text-xs sm:text-sm">{`${range[0]}-${range[1]} из ${total}`}</span>
-                                  ),
-                                  onChange: onPageChange,
-                              }
-                            : false
-                    }
+                    rowClassName={rowClassName}
+                    primaryColumnKey={primaryColumnKey}
+                    hiddenInMobileColumns={hiddenInMobileColumns}
+                    renderMobileCard={renderMobileCard}
+                    hiddenPagination={hiddenPagination}
                 />
-            </div>
+            ) : (
+                <div className={disableScrollX ? '' : 'overflow-x-auto'}>
+                    <Table
+                        expandable={expandable}
+                        virtual={virtual}
+                        className={`custom-table cursor-pointer ${className || ''} sm:size-default`}
+                        loading={isLoading}
+                        dataSource={tableData}
+                        columns={columnsWithId}
+                        rowKey="id"
+                        rowClassName={rowClassName}
+                        rowSelection={rowSelection}
+                        onRow={(record) => ({
+                            onClick: (e: React.MouseEvent<HTMLElement>) => handleRowClickWithStop(record, e),
+                        })}
+                        scroll={disableScrollX ? undefined : { x: 'max-content' }}
+                        size="small"
+                        pagination={
+                            !hiddenPagination
+                                ? {
+                                      total,
+                                      current: pageNumber,
+                                      pageSize,
+                                      pageSizeOptions: [10, 20, 30],
+                                      showSizeChanger: true,
+                                      responsive: true,
+                                      showQuickJumper: false,
+                                      showTotal: (total, range) => (
+                                          <span className="text-xs sm:text-sm">{`${range[0]}-${range[1]} из ${total}`}</span>
+                                      ),
+                                      onChange: onPageChange,
+                                  }
+                                : false
+                        }
+                    />
+                </div>
+            )}
         </div>
     );
 }
