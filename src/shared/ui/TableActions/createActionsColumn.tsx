@@ -54,19 +54,19 @@ export function createActionsColumn<RecordType extends Record<string, any> = any
         align,
         ...restColumnProps,
         render: (_: any, record: RecordType) => (
-            React.createElement(TableActions, {
-                record,
-                actions,
-                onView,
-                onEdit,
-                onDelete,
-                deleteConfirm,
-                mode,
-                maxVisibleButtons,
-                size,
-                className,
-                style,
-            })
+            <TableActions<RecordType>
+                record={record}
+                actions={actions}
+                onView={onView}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                deleteConfirm={deleteConfirm}
+                mode={mode}
+                maxVisibleButtons={maxVisibleButtons}
+                size={size}
+                className={className}
+                style={style}
+            />
         ),
     };
 }
