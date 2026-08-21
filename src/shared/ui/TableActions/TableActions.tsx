@@ -123,8 +123,11 @@ export function TableActions<RecordType extends Record<string, any> = any>({
             </Button>
         );
 
-        const wrappedWithTooltip = action.tooltip ? (
-            <Tooltip key={`tooltip-${actionKey}`} title={action.tooltip}>
+        const tooltipContent =
+            typeof action.tooltip === 'function' ? action.tooltip(record) : action.tooltip;
+
+        const wrappedWithTooltip = tooltipContent ? (
+            <Tooltip key={`tooltip-${actionKey}`} title={tooltipContent}>
                 {buttonElement}
             </Tooltip>
         ) : (

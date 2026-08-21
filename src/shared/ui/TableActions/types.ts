@@ -18,7 +18,7 @@ export interface TableActionItem<RecordType = any> {
     type?: ButtonProps['type'];
     disabled?: boolean | ((record: RecordType) => boolean);
     hidden?: boolean | ((record: RecordType) => boolean);
-    tooltip?: React.ReactNode;
+    tooltip?: React.ReactNode | ((record: RecordType) => React.ReactNode);
     confirm?: ActionConfirmConfig | ((record: RecordType) => ActionConfirmConfig | undefined);
     onClick?: (record: RecordType, event?: React.MouseEvent) => Promise<any> | any;
 }
