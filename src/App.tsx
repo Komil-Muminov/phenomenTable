@@ -20,15 +20,6 @@ function App() {
             this[idSymbol] = id;
         }
     }
-    const users = [
-        { name: 'John', age: 30 },
-        { name: 'Alice', age: 25 },
-        { name: 'Bob', age: 40 },
-    ];
-    // for (const user of users) {
-    //     const newArr = [...newArr, users[user]];
-    //     console.log(newArr);
-    // }
     return (
         <div>
             <div className="!flex !flex-col !justify-end px-2 lg:p-0">
