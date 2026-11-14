@@ -18,6 +18,7 @@ export function TableActions<RecordType>({
     deleteConfirm = DEFAULT_DELETE_CONFIRM,
     mode = 'auto',
     maxVisibleButtons = 3,
+    iconOnly = true,
     size = 'small',
     className = '',
     style,
@@ -52,6 +53,7 @@ export function TableActions<RecordType>({
                         item={item}
                         size={size}
                         loading={isLoading(item.key)}
+                        iconOnly={iconOnly}
                         onRun={(event) => void run(item.action, item.key, event)}
                     />
                 ))}

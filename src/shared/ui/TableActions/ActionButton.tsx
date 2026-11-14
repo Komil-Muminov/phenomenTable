@@ -6,14 +6,19 @@ interface ActionButtonProps<RecordType> {
     item: ResolvedAction<RecordType>;
     size: ButtonProps['size'];
     loading: boolean;
+    iconOnly?: boolean;
     onRun: (event?: React.MouseEvent) => void;
 }
 
 const stop = (event?: React.MouseEvent<HTMLElement>) => event?.stopPropagation();
 
 /** Кнопка действия: с тултипом и подтверждением, если они заданы */
-export function ActionButton<RecordType>({ item, size, loading, onRun }: ActionButtonProps<RecordType>) {
-    const { action, disabled, confirm, tooltip } = item;
+export function ActionButton<RecordType>({ item, size, loading, iconOnly, onRun }: ActionButtonProps<RecordType>) {
+    const { action, disabled, confirm } = item;
+    // Иконка без подписи — подпись уезжает в тултип и aria-label
+    const compact = Boolean(iconOnly && action.icon);
+    const tooltip = item.tooltip ?? (compact ? action.label : undefined);
+    const ariaLabel = compact && typeof action.label === 'string' ? action.label : undefined;
 
     let element = (
         <Button
@@ -23,13 +28,14 @@ export function ActionButton<RecordType>({ item, size, loading, onRun }: ActionB
             disabled={disabled}
             loading={loading}
             icon={action.icon}
-            className="flex items-center gap-1 text-xs"
+            aria-label={ariaLabel}
+            className={compact ? 'flex size-8 items-center justify-center p-0' : 'flex items-center gap-1 text-xs'}
             onClick={(event) => {
                 stop(event);
                 if (!confirm) onRun(event);
             }}
         >
-            {action.label}
+            {compact ? null : action.label}
         </Button>
     );
 

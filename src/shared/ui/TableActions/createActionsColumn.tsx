@@ -31,7 +31,7 @@ export function createActionsColumn<RecordType extends Record<string, any> = any
     const {
         title = 'Действия',
         key = 'actions',
-        width = 160,
+        width = 120,
         fixed = 'right',
         align = 'center',
         actions,
@@ -41,6 +41,7 @@ export function createActionsColumn<RecordType extends Record<string, any> = any
         deleteConfirm,
         mode = 'auto',
         maxVisibleButtons = 3,
+        iconOnly = true,
         size = 'small',
         className,
         style,
@@ -64,6 +65,7 @@ export function createActionsColumn<RecordType extends Record<string, any> = any
                 deleteConfirm={deleteConfirm}
                 mode={mode}
                 maxVisibleButtons={maxVisibleButtons}
+                iconOnly={iconOnly}
                 size={size}
                 className={className}
                 style={style}

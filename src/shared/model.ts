@@ -1,3 +1,4 @@
+import type { BulkActionItem } from './ui/TableActions/types';
 import type { InputProps, TableColumnsType, TableProps } from 'antd';
 import type { TableRowSelection } from 'antd/es/table/interface';
 import type { Key, ReactNode } from 'react';
@@ -78,6 +79,8 @@ export interface SmartTableProps<RecordType, ResponseType = IApiResponse<RecordT
     // Выделение: свой rowSelection или встроенный через handleSelectionChange
     rowSelection?: TableRowSelection<RecordType>;
     handleSelectionChange?: (keys: Key[], rows: RecordType[]) => void;
+    /** Массовые действия: включают выделение и плавающую панель снизу */
+    bulkActions?: BulkActionItem<RecordType>[];
 
     // Фильтры
     filters?: IFilterItem[];
@@ -99,6 +102,8 @@ export interface SmartTableProps<RecordType, ResponseType = IApiResponse<RecordT
     style?: string;
     hiddenPagination?: boolean;
     disableScrollX?: boolean;
+    /** Закреплённая шапка таблицы (по умолчанию true). Число — отступ сверху, например под фикс-хедер */
+    stickyHeader?: boolean | number;
     virtual?: boolean;
     customRender?: (items: RecordType[], total: number) => ReactNode;
 
@@ -106,6 +111,8 @@ export interface SmartTableProps<RecordType, ResponseType = IApiResponse<RecordT
     enableViewModal?: boolean;
     viewModalTitle?: string;
     viewModalColumns?: TableColumnsType<RecordType>;
+    /** Скрывать в модалке пустые поля (по умолчанию true) */
+    viewModalHideEmpty?: boolean;
 
     // Мобильный вид (карточки)
     enableMobileCards?: boolean;

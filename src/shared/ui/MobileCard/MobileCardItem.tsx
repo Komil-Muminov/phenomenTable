@@ -19,7 +19,7 @@ interface MobileCardItemProps<RecordType> {
     rowClassName?: string;
 }
 
-const EMPTY = <span className="text-gray-400">—</span>;
+const EMPTY = <span className="text-ink-muted/60">—</span>;
 
 export function MobileCardItem<RecordType>(props: MobileCardItemProps<RecordType>) {
     const { record, index, columns, handleRowClick, isSelected, onToggleSelect, renderMobileCard, rowClassName } =
@@ -55,12 +55,12 @@ export function MobileCardItem<RecordType>(props: MobileCardItemProps<RecordType
     return (
         <div
             onClick={() => handleRowClick?.(record)}
-            className={`rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-shadow duration-200 hover:shadow-md ${
-                isSelected ? '!border-blue-500 !bg-blue-50/20 ring-1 ring-blue-500/20' : ''
+            className={`rounded-xl border border-line bg-surface p-4 transition-colors duration-150 hover:border-brand/40 ${
+                isSelected ? 'border-brand bg-brand-soft/40 ring-1 ring-brand/20' : ''
             } ${clickable} ${rowClassName ?? ''}`}
         >
             {/* Шапка карточки */}
-            <div className="mb-3 flex items-start justify-between gap-3 border-b border-gray-100 pb-3">
+            <div className="mb-3 flex items-start justify-between gap-3 border-b border-line pb-3">
                 <div className="flex min-w-0 items-center gap-3">
                     {selectable && (
                         <div onClick={stop} className="flex items-center">
@@ -73,12 +73,10 @@ export function MobileCardItem<RecordType>(props: MobileCardItemProps<RecordType
                     )}
                     {primary && (
                         <div className="min-w-0">
-                            <span className="block text-xs font-medium uppercase tracking-wider text-gray-500">
+                            <span className="block text-xs font-medium uppercase tracking-wider text-ink-muted">
                                 {typeof primary.title === 'string' ? primary.title : 'Запись'}
                             </span>
-                            <div className="truncate text-base font-semibold text-gray-900">
-                                {renderCellValue(primary)}
-                            </div>
+                            <div className="truncate text-base font-semibold text-ink">{renderCellValue(primary)}</div>
                         </div>
                     )}
                 </div>
@@ -90,10 +88,10 @@ export function MobileCardItem<RecordType>(props: MobileCardItemProps<RecordType
                     {body.map((col) => (
                         <div
                             key={columnId(col)}
-                            className="flex items-center justify-between gap-2 rounded-lg bg-gray-50/60 p-1.5"
+                            className="flex items-center justify-between gap-2 rounded-lg bg-surface-muted p-1.5"
                         >
-                            <span className="shrink-0 text-xs font-medium text-gray-600">{labelOf(col)}:</span>
-                            <div className="truncate text-right text-xs font-semibold text-gray-800 sm:text-sm">
+                            <span className="shrink-0 text-xs font-medium text-ink-muted">{labelOf(col)}:</span>
+                            <div className="truncate text-right text-xs font-semibold text-ink sm:text-sm">
                                 {renderCellValue(col)}
                             </div>
                         </div>
@@ -105,7 +103,7 @@ export function MobileCardItem<RecordType>(props: MobileCardItemProps<RecordType
             {actions.length > 0 && (
                 <div
                     onClick={stop}
-                    className="mt-3 flex flex-wrap items-center justify-end gap-2 border-t border-gray-100 pt-3"
+                    className="mt-3 flex flex-wrap items-center justify-end gap-2 border-t border-line pt-3"
                 >
                     {actions.map((col) => (
                         <div key={columnId(col)} className="w-full sm:w-auto">

@@ -1,4 +1,4 @@
-import { Empty, Pagination, Skeleton, type TableColumnsType } from 'antd';
+import { Pagination, Skeleton, type TableColumnsType } from 'antd';
 import React, { useMemo, type Key } from 'react';
 
 import { MobileCardItem } from './MobileCardItem';
@@ -22,6 +22,8 @@ interface MobileCardListProps<RecordType> {
     hiddenInMobileColumns?: string[];
     renderMobileCard?: (record: RecordType, index: number) => React.ReactNode;
     hiddenPagination?: boolean;
+    /** Пустое состояние (общее с таблицей) */
+    empty: React.ReactNode;
 }
 
 export function MobileCardList<RecordType>(props: MobileCardListProps<RecordType>) {
@@ -42,6 +44,7 @@ export function MobileCardList<RecordType>(props: MobileCardListProps<RecordType
         hiddenInMobileColumns,
         renderMobileCard,
         hiddenPagination,
+        empty,
     } = props;
 
     const selectedKeys = useMemo(() => new Set(rowSelection?.selectedRowKeys ?? []), [rowSelection?.selectedRowKeys]);
@@ -60,13 +63,13 @@ export function MobileCardList<RecordType>(props: MobileCardListProps<RecordType
     }, [onToggleSelect, rowSelection, selectedKeys, getRowKey, tableData]);
 
     return (
-        <div className="flex flex-col gap-3 w-full py-2">
+        <div className="flex w-full flex-col gap-3">
             {/* Состояние загрузки (Скелетоны карточек) */}
             {isLoading && (
                 <div className="flex flex-col gap-3">
                     {[1, 2, 3].map((skeletonId) => (
-                        <div key={skeletonId} className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-                            <div className="flex justify-between items-center pb-3 border-b border-gray-100 mb-3">
+                        <div key={skeletonId} className="rounded-xl border border-line bg-surface p-4">
+                            <div className="mb-3 flex items-center justify-between border-b border-line pb-3">
                                 <Skeleton.Input active size="small" style={{ width: 140 }} />
                                 <Skeleton.Button active size="small" style={{ width: 60 }} />
                             </div>
@@ -80,9 +83,7 @@ export function MobileCardList<RecordType>(props: MobileCardListProps<RecordType
 
             {/* Пустое состояние */}
             {!isLoading && (!tableData || tableData.length === 0) && (
-                <div className="bg-white rounded-xl border border-gray-100 p-8 text-center my-2 shadow-sm">
-                    <Empty description="Данные отсутствуют" />
-                </div>
+                <div className="rounded-xl border border-line bg-surface">{empty}</div>
             )}
 
             {/* Список карточек */}
@@ -111,9 +112,9 @@ export function MobileCardList<RecordType>(props: MobileCardListProps<RecordType
 
             {/* Серверная мобильная пагинация */}
             {!hiddenPagination && total > 0 && (
-                <div className="mt-4 flex flex-col items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-gray-100 shadow-sm">
-                    <div className="text-xs text-gray-500 font-medium">
-                        Всего записей: <span className="text-gray-900 font-semibold">{total}</span>
+                <div className="mt-1 flex items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3.5 py-2.5">
+                    <div className="text-xs text-ink-muted">
+                        Всего: <span className="font-semibold text-ink">{total}</span>
                     </div>
                     <Pagination
                         current={pageNumber}

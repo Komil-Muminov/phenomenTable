@@ -4,3 +4,4 @@ export * from './axios';
 export * from './env';
 export * from './queryClient';
 export * from './tokenControl';
+export * from './theme';

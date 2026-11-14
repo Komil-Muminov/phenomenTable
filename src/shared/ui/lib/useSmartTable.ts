@@ -105,6 +105,19 @@ export const useSmartTable = <RecordType, ResponseType = unknown>(
         setAppliedFilters({});
     }, [filters, deleteParams, setParams]);
 
+    // Снять один фильтр (крестик на чипсе) — сразу применяется и в режиме searchButton
+    const handleRemoveFilter = useCallback(
+        (filter: IFilterItem) => {
+            const names = getFilterParamNames(filter);
+            deleteParams(names);
+            setParams('pageNumber', 1);
+            setAppliedFilters((prev) =>
+                Object.fromEntries(Object.entries(prev).filter(([key]) => !names.includes(key))),
+            );
+        },
+        [deleteParams, setParams],
+    );
+
     const setPage = useCallback(
         (page: number, size: number) => setParams({ pageNumber: page, pageSize: size }),
         [setParams],
@@ -140,9 +153,14 @@ export const useSmartTable = <RecordType, ResponseType = unknown>(
         total,
         isLoading: isFetching,
         filterValues,
+        /** Фильтры, которые реально участвуют в выборке (для чипсов) */
+        activeFilters,
+        /** Введено в поля, но ещё не применено кнопкой «Поиск» */
+        hasPendingFilters: searchButton && JSON.stringify(filterValues) !== JSON.stringify(appliedFilters),
         transformedFilters,
         handleApplyFilters,
         handleResetFilters,
+        handleRemoveFilter,
         pageNumber: isStatic ? Math.min(pageNumber, Math.max(1, Math.ceil(total / pageSize))) : pageNumber,
         pageSize,
         setPage,

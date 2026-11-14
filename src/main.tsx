@@ -1,4 +1,5 @@
-import { queryClient } from '@shared/config';
+import { StyleProvider } from '@ant-design/cssinjs';
+import { appTheme, queryClient } from '@shared/config';
 import { Toaster } from '@shared/ui';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ConfigProvider } from 'antd';
@@ -24,10 +25,13 @@ createRoot(rootElement).render(
     <StrictMode>
         <BrowserRouter>
             <QueryClientProvider client={queryClient}>
-                <ConfigProvider locale={ruRU}>
-                    <App />
-                    <Toaster />
-                </ConfigProvider>
+                {/* layer: стили antd уходят в @layer antd (порядок задан в index.css) */}
+                <StyleProvider layer>
+                    <ConfigProvider locale={ruRU} theme={appTheme}>
+                        <App />
+                        <Toaster />
+                    </ConfigProvider>
+                </StyleProvider>
             </QueryClientProvider>
         </BrowserRouter>
     </StrictMode>,

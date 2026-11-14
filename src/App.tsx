@@ -1,9 +1,10 @@
+import { Download, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { createDemoColumns } from './demo/demoColumns';
 import { DEMO_FILTERS, DEMO_ROWS, demoLocalFilter, type RowItem } from './demo/demoData';
 import { ToastDemo } from './demo/ToastDemo';
-import { SmartTable, toast } from './shared/ui';
+import { SmartTable, toast, type BulkActionItem } from './shared/ui';
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -23,13 +24,45 @@ function App() {
         [],
     );
 
+    // Массовые действия: «запись» здесь — массив выделенных строк
+    const bulkActions = useMemo<BulkActionItem<RowItem>[]>(
+        () => [
+            {
+                key: 'export',
+                label: 'Выгрузить',
+                icon: <Download className="size-4" />,
+                keepSelection: true,
+                onClick: (selected) => toast.success(`Выгружено записей: ${selected.length}`),
+            },
+            {
+                key: 'delete',
+                label: 'Удалить',
+                icon: <Trash2 className="size-4" />,
+                danger: true,
+                confirm: (selected) => ({
+                    title: `Удалить ${selected.length} шт.?`,
+                    description: 'Записи будут удалены безвозвратно.',
+                    okText: 'Удалить',
+                    okType: 'danger',
+                }),
+                onClick: async (selected) => {
+                    await wait(800);
+                    const ids = new Set(selected.map((row) => row.id));
+                    setRows((prev) => prev.filter((row) => !ids.has(row.id)));
+                    toast.success(`Удалено записей: ${selected.length}`);
+                },
+            },
+        ],
+        [],
+    );
+
     return (
         <div className="mx-auto max-w-7xl p-4 sm:p-8">
             <header className="mb-6 space-y-3">
                 <div>
                     <h1 className="text-xl font-bold text-gray-800">SmartTable + TableActions</h1>
                     <p className="text-sm text-gray-500">
-                        Фильтры в URL, локальная пагинация, выделение, модалка просмотра и кастомные тосты.
+                        Фильтры в URL с чипсами, массовые действия, модалка просмотра и кастомные тосты.
                     </p>
                 </div>
                 <ToastDemo />
@@ -44,9 +77,7 @@ function App() {
                 idColumnHidden={false}
                 enableViewModal
                 viewModalTitle="Карточка доставки"
-                handleSelectionChange={(keys) =>
-                    keys.length > 0 && toast.info(`Выбрано записей: ${keys.length}`, { id: 'selection' })
-                }
+                bulkActions={bulkActions}
             />
         </div>
     );

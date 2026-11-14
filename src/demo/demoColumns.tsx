@@ -19,7 +19,7 @@ export const createDemoColumns = ({ onEdit, onDelete }: DemoHandlers): TableColu
     { title: 'Дата отправки', dataIndex: 'startDate' },
     createActionsColumn<RowItem>({
         title: 'Действия',
-        width: 220,
+        width: 120,
         onEdit,
         onDelete,
         deleteConfirm: {
@@ -33,7 +33,7 @@ export const createDemoColumns = ({ onEdit, onDelete }: DemoHandlers): TableColu
             {
                 key: 'copy',
                 label: 'Копировать',
-                icon: <Copy className="h-3.5 w-3.5" />,
+                icon: <Copy className="size-4" />,
                 onClick: async (row) => {
                     await navigator.clipboard?.writeText(JSON.stringify(row, null, 2)).catch(() => undefined);
                     toast.success(`Запись #${row.id} скопирована`, { description: 'JSON уже в буфере обмена' });
@@ -42,7 +42,7 @@ export const createDemoColumns = ({ onEdit, onDelete }: DemoHandlers): TableColu
             {
                 key: 'lock',
                 label: 'Блокировка',
-                icon: <ShieldAlert className="h-3.5 w-3.5" />,
+                icon: <ShieldAlert className="size-4" />,
                 danger: true,
                 disabled: (row) => Boolean(row.isLocked),
                 tooltip: (row) => (row.isLocked ? 'Уже заблокировано' : 'Заблокировать запись'),

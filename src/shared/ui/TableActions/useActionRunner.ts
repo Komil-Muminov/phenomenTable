@@ -25,17 +25,20 @@ export const useActionRunner = <RecordType>(record: RecordType) => {
     }, []);
 
     const run = useCallback(
-        async (action: TableActionItem<RecordType>, key: string, event?: React.MouseEvent) => {
-            if (!action.onClick) return;
+        // true — действие выполнилось без ошибок
+        async (action: TableActionItem<RecordType>, key: string, event?: React.MouseEvent): Promise<boolean> => {
+            if (!action.onClick) return false;
             try {
                 const result = action.onClick(record, event);
                 if (result && typeof (result as PromiseLike<unknown>).then === 'function') {
                     setLoading(key, true);
                     await result;
                 }
+                return true;
             } catch (error) {
                 console.error(`Ошибка действия "${key}":`, error);
                 toast.error('Не удалось выполнить действие', { description: getErrorMessage(error, '') || undefined });
+                return false;
             } finally {
                 setLoading(key, false);
             }

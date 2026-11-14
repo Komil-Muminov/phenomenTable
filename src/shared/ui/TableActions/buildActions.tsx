@@ -10,7 +10,7 @@ export const DEFAULT_DELETE_CONFIRM: ActionConfirmConfig = {
     okType: 'danger',
 };
 
-const ICON_CLASS = 'w-3.5 h-3.5';
+const ICON_CLASS = 'size-4';
 
 type PresetSource<RecordType> = Pick<TableActionsProps<RecordType>, 'actions' | 'onView' | 'onEdit' | 'onDelete'> & {
     deleteConfirm: ActionConfirmConfig;

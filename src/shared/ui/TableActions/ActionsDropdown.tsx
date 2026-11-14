@@ -7,7 +7,7 @@ interface ActionsDropdownProps<RecordType> {
     items: ResolvedAction<RecordType>[];
     size: ButtonProps['size'];
     isLoading: (key: string) => boolean;
-    onRun: (item: ResolvedAction<RecordType>) => Promise<void>;
+    onRun: (item: ResolvedAction<RecordType>) => Promise<unknown>;
 }
 
 /**

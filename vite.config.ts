@@ -14,7 +14,7 @@ export default defineConfig({
                 // Тяжёлые вендоры отдельно: лучше кэшируются между релизами
                 manualChunks: {
                     react: ['react', 'react-dom', 'react-router-dom'],
-                    antd: ['antd', '@ant-design/icons'],
+                    antd: ['antd'],
                     query: ['@tanstack/react-query', 'axios'],
                 },
             },

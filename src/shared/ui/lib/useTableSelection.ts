@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type Key } from 'react';
+import { useCallback, useMemo, useRef, useState, type Key } from 'react';
 
 import { resolveRowKey } from './rowKey';
 
@@ -21,18 +21,33 @@ export const useTableSelection = <RecordType>(options: UseTableSelectionOptions<
 
     const selectedKeySet = useMemo(() => new Set(selectedRowKeys), [selectedRowKeys]);
 
-    // Строки текущей страницы, которые выделены
-    const selectedRows = useMemo(
-        () => data.filter((record) => selectedKeySet.has(getRowKey(record))),
-        [data, selectedKeySet, getRowKey],
-    );
+    // Кэш выделенных строк: при серверной пагинации строки с прошлых страниц уже не в data
+    const rowsCacheRef = useRef(new Map<Key, RecordType>());
+
+    const selectedRows = useMemo(() => {
+        const cache = rowsCacheRef.current;
+        data.forEach((record) => {
+            const key = getRowKey(record);
+            if (selectedKeySet.has(key)) cache.set(key, record);
+        });
+        return selectedRowKeys.map((key) => cache.get(key)).filter((row): row is RecordType => row !== undefined);
+    }, [data, selectedRowKeys, selectedKeySet, getRowKey]);
 
     const setSelection = useCallback(
         (keys: Key[], rows: RecordType[]) => {
+            const cache = rowsCacheRef.current;
+            // antd может передать undefined вместо строк с других страниц
+            rows.forEach((row) => row !== undefined && cache.set(getRowKey(row), row));
+            const keySet = new Set(keys);
+            [...cache.keys()].forEach((key) => !keySet.has(key) && cache.delete(key));
+
             setSelectedRowKeys(keys);
-            onSelectionChange?.(keys, rows);
+            onSelectionChange?.(
+                keys,
+                keys.map((key) => cache.get(key)).filter((row): row is RecordType => row !== undefined),
+            );
         },
-        [onSelectionChange],
+        [onSelectionChange, getRowKey],
     );
 
     const selectAll = useCallback(() => setSelection(data.map(getRowKey), data), [data, getRowKey, setSelection]);

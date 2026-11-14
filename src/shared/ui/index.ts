@@ -7,3 +7,6 @@ export * from './TableActions';
 export * from './TableContent';
 export * from './Toast';
 export * from './ViewModal';
+export * from './BulkActionsBar';
+export * from './TableEmpty';
+export * from './Toolbar/TableToolbar';

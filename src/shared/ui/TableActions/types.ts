@@ -32,6 +32,8 @@ export interface TableActionsProps<RecordType = any> {
     deleteConfirm?: ActionConfirmConfig;
     mode?: 'buttons' | 'dropdown' | 'auto';
     maxVisibleButtons?: number;
+    /** Кнопки в строке — только иконки с тултипом (если у действия есть icon). По умолчанию true */
+    iconOnly?: boolean;
     size?: ButtonProps['size'];
     className?: string;
     style?: React.CSSProperties;
@@ -41,4 +43,10 @@ export interface CreateActionsColumnOptions<RecordType = any>
     extends Omit<TableColumnType<RecordType>, 'render'>,
         Omit<TableActionsProps<RecordType>, 'record'> {
     title?: React.ReactNode;
+}
+
+/** Массовое действие: то же, что действие строки, но «запись» — массив выделенных строк */
+export interface BulkActionItem<RecordType = any> extends TableActionItem<RecordType[]> {
+    /** Не снимать выделение после успешного выполнения (по умолчанию снимается) */
+    keepSelection?: boolean;
 }

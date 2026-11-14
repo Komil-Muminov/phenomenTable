@@ -1,41 +1,47 @@
+/* Порядок слоёв: antd между base и utilities — утилиты Tailwind перекрывают antd без !important */
+@layer theme, base, antd, components, utilities;
+
 @import 'tailwindcss';
-body {
-    padding: 0;
-    margin: 0;
+
+/* Токены для Tailwind: bg-brand, text-ink-muted и т.д. Синхронно с shared/config/theme.ts */
+@theme {
+    --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+    --color-brand: #125a83;
+    --color-brand-hover: #1872a6;
+    --color-brand-soft: #e8f1f7;
+
+    --color-ink: #0f172a;
+    --color-ink-muted: #64748b;
+    --color-line: #e2e8f0;
+    --color-surface: #ffffff;
+    --color-surface-muted: #f8fafc;
 }
 
-.container {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 0 20px;
+@layer base {
+    body {
+        margin: 0;
+        background: var(--color-surface-muted);
+        color: var(--color-ink);
+        font-family: var(--font-sans);
+        -webkit-font-smoothing: antialiased;
+    }
 }
 
-:root {
-    /* Цвета текста */
-    --text-primary: #252525;
-    --text-secondary: #66727f;
-    --text-tertiary: #125a83;
-    --text-muted: #2d3748;
-    --text-inverted: #ffffff;
-    --label-primary: #737c86;
+/* Плавающая панель массовых действий */
+@keyframes bulk-bar-in {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+}
 
-    /*  Цвета фона */
-    --background-primary: #ffffff;
-    --background-secondary: #125a83;
-    --background-tertiary: #25ba37;
-    --background-fourth: #f7fafc;
-    --background-secondary-hover: #1872a6;
-    --background-dark: #000000;
-    --background-yellow: #f2fa0633;
+.bulk-bar {
+    animation: bulk-bar-in 200ms cubic-bezier(0.21, 1.02, 0.73, 1) both;
+}
 
-    /* Альтернативный вариант */
-    --logo-primary: #81da67;
-    --logo-secondary: #125a83;
-    --success-checkbox: #20d226;
-    --discount: #48bb78;
-    --pending-status: #ffc13a;
-    --loading-status: #e2ff5f;
-    --success-status: #2cff33;
-    --login-secondary: #25252599;
-    --border-dashed: #94a4b9;
+@media (prefers-reduced-motion: reduce) {
+    .bulk-bar {
+        animation: none;
+    }
 }
