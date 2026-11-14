@@ -1,88 +1,87 @@
-import { useState, useCallback, useMemo } from 'react';
-import { TableRowSelection } from 'antd/es/table/interface';
+import { useCallback, useMemo, useState, type Key } from 'react';
 
-export const useTableSelection = <T extends Record<string, any>>(options: any) => {
+import { resolveRowKey } from './rowKey';
+
+import type { RowKeyGetter } from '@shared/model';
+import type { TableRowSelection } from 'antd/es/table/interface';
+
+interface UseTableSelectionOptions<RecordType> {
+    data: RecordType[];
+    rowKey?: RowKeyGetter<RecordType>;
+    initialSelectedKeys?: Key[];
+    onSelectionChange?: (keys: Key[], rows: RecordType[]) => void;
+}
+
+export const useTableSelection = <RecordType>(options: UseTableSelectionOptions<RecordType>) => {
     const { data, rowKey = 'id', initialSelectedKeys = [], onSelectionChange } = options;
 
-    const [selectedRowKeys, setSelectedRowKeys] = useState<any[]>(initialSelectedKeys);
+    const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>(initialSelectedKeys);
 
-    const getRowKey = useCallback(
-        (record: T): any => {
-            return typeof rowKey === 'function' ? rowKey(record) : record[rowKey];
-        },
-        [rowKey],
+    const getRowKey = useCallback((record: RecordType) => resolveRowKey(record, rowKey), [rowKey]);
+
+    const selectedKeySet = useMemo(() => new Set(selectedRowKeys), [selectedRowKeys]);
+
+    // Строки текущей страницы, которые выделены
+    const selectedRows = useMemo(
+        () => data.filter((record) => selectedKeySet.has(getRowKey(record))),
+        [data, selectedKeySet, getRowKey],
     );
 
-    const selectedRows = useMemo(() => {
-        const keySet = new Set(selectedRowKeys);
-        return data.filter((record: any) => keySet.has(getRowKey(record)));
-    }, [data, selectedRowKeys, getRowKey]);
-
-    const handleSelectionChange = useCallback(
-        (newSelectedRowKeys: any[], newSelectedRows: T[]) => {
-            setSelectedRowKeys(newSelectedRowKeys);
-            onSelectionChange?.(newSelectedRowKeys, newSelectedRows);
+    const setSelection = useCallback(
+        (keys: Key[], rows: RecordType[]) => {
+            setSelectedRowKeys(keys);
+            onSelectionChange?.(keys, rows);
         },
         [onSelectionChange],
     );
 
-    const selectAll = useCallback(() => {
-        const allKeys = data?.map(getRowKey);
-        handleSelectionChange(allKeys, data);
-    }, [data, getRowKey, handleSelectionChange]);
+    const selectAll = useCallback(() => setSelection(data.map(getRowKey), data), [data, getRowKey, setSelection]);
 
-    const deselectAll = useCallback(() => {
-        handleSelectionChange([], []);
-    }, [handleSelectionChange]);
+    const deselectAll = useCallback(() => setSelection([], []), [setSelection]);
 
     const invertSelection = useCallback(() => {
-        const currentKeySet = new Set(selectedRowKeys);
-        const invertedKeys = data?.filter((record: any) => !currentKeySet.has(getRowKey(record)))?.map(getRowKey);
-        const invertedRows = data?.filter((record: any) => !currentKeySet.has(getRowKey(record)));
-        handleSelectionChange(invertedKeys, invertedRows);
-    }, [data, selectedRowKeys, getRowKey, handleSelectionChange]);
+        const rows = data.filter((record) => !selectedKeySet.has(getRowKey(record)));
+        setSelection(rows.map(getRowKey), rows);
+    }, [data, selectedKeySet, getRowKey, setSelection]);
 
     const selectByCondition = useCallback(
-        (condition: (record: T) => boolean) => {
-            const filteredData = data?.filter(condition);
-            const keys = filteredData?.map(getRowKey);
-            handleSelectionChange(keys, filteredData);
+        (condition: (record: RecordType) => boolean) => {
+            const rows = data.filter(condition);
+            setSelection(rows.map(getRowKey), rows);
         },
-        [data, getRowKey, handleSelectionChange],
+        [data, getRowKey, setSelection],
     );
 
     const isSelected = useCallback(
-        (record: T): boolean => {
-            const key = getRowKey(record);
-            return selectedRowKeys.includes(key);
-        },
-        [selectedRowKeys, getRowKey],
+        (record: RecordType) => selectedKeySet.has(getRowKey(record)),
+        [selectedKeySet, getRowKey],
     );
 
     const toggleSelection = useCallback(
-        (record: T) => {
+        (record: RecordType, checked?: boolean) => {
             const key = getRowKey(record);
-            const index = selectedRowKeys.indexOf(key);
+            const shouldSelect = checked ?? !selectedKeySet.has(key);
 
-            if (index > -1) {
-                const newKeys = [...selectedRowKeys];
-                newKeys.splice(index, 1);
-                const newRows = selectedRows.filter((row: any) => getRowKey(row) !== key);
-                handleSelectionChange(newKeys, newRows);
+            if (shouldSelect) {
+                if (selectedKeySet.has(key)) return;
+                setSelection([...selectedRowKeys, key], [...selectedRows, record]);
             } else {
-                handleSelectionChange([...selectedRowKeys, key], [...selectedRows, record]);
+                setSelection(
+                    selectedRowKeys.filter((item) => item !== key),
+                    selectedRows.filter((row) => getRowKey(row) !== key),
+                );
             }
         },
-        [selectedRowKeys, selectedRows, getRowKey, handleSelectionChange],
+        [selectedRowKeys, selectedRows, selectedKeySet, getRowKey, setSelection],
     );
 
-    const rowSelection: TableRowSelection<T> = useMemo(
+    const rowSelection: TableRowSelection<RecordType> = useMemo(
         () => ({
             selectedRowKeys,
-            onChange: handleSelectionChange,
+            onChange: setSelection,
             preserveSelectedRowKeys: true,
         }),
-        [selectedRowKeys, handleSelectionChange],
+        [selectedRowKeys, setSelection],
     );
 
     return {

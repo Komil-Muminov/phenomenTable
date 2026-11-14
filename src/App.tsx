@@ -1,132 +1,52 @@
-import { FilterType } from '@shared/model';
-import { SmartTable, createActionsColumn } from './shared/ui';
-import { ApiRoutes } from '@shared/config';
-import { useState } from 'react';
-import { message } from 'antd';
-import { Copy, ShieldAlert } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
-interface RowItem {
-    id: number;
-    title: string;
-    senderCity?: string;
-    km?: string;
-    startDate?: string;
-    isLocked?: boolean;
-}
+import { createDemoColumns } from './demo/demoColumns';
+import { DEMO_FILTERS, DEMO_ROWS, demoLocalFilter, type RowItem } from './demo/demoData';
+import { ToastDemo } from './demo/ToastDemo';
+import { SmartTable, toast } from './shared/ui';
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function App() {
-    const [data, setData] = useState<RowItem[]>([
-        { id: 1, title: 'Доставка 1', senderCity: 'Москва', km: '350 км', startDate: '2023-01-01' },
-        { id: 2, title: 'Доставка 2', senderCity: 'Санкт-Петербург', km: '700 км', startDate: '2023-02-15', isLocked: true },
-        { id: 3, title: 'Доставка 3', senderCity: 'Казань', km: '120 км', startDate: '2023-03-20' },
-    ]);
+    const [rows, setRows] = useState<RowItem[]>(DEMO_ROWS);
 
-    const handleDelete = async (row: RowItem) => {
-        // Симуляция сетевого запроса на удаление
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        setData((prev) => prev.filter((item) => item.id !== row.id));
-        message.success(`Запись #${row.id} успешно удалена`);
-    };
-
-    const handleEdit = (row: RowItem) => {
-        message.info(`Редактирование записи #${row.id}: ${row.title}`);
-    };
+    const columns = useMemo(
+        () =>
+            createDemoColumns({
+                onEdit: (row) => toast.info(`Редактирование #${row.id}`, { description: row.title }),
+                onDelete: async (row) => {
+                    await wait(800); // имитация запроса
+                    setRows((prev) => prev.filter((item) => item.id !== row.id));
+                    toast.success(`Запись #${row.id} удалена`);
+                },
+            }),
+        [],
+    );
 
     return (
-        <div className="p-4 sm:p-8 max-w-7xl mx-auto">
-            <div className="mb-4">
-                <h1 className="text-xl font-bold text-gray-800">Демонстрация SmartTable + TableActions</h1>
-                <p className="text-sm text-gray-500">
-                    Готовая колонка действий с подтверждением удаления, асинхронным лоадером и выпадающим меню.
-                </p>
-            </div>
+        <div className="mx-auto max-w-7xl p-4 sm:p-8">
+            <header className="mb-6 space-y-3">
+                <div>
+                    <h1 className="text-xl font-bold text-gray-800">SmartTable + TableActions</h1>
+                    <p className="text-sm text-gray-500">
+                        Фильтры в URL, локальная пагинация, выделение, модалка просмотра и кастомные тосты.
+                    </p>
+                </div>
+                <ToastDemo />
+            </header>
 
             <SmartTable<RowItem>
-                url={ApiRoutes.TEST_API}
+                title="Доставки"
+                dataSource={rows}
+                columns={columns}
+                filters={DEMO_FILTERS}
+                localFilter={demoLocalFilter}
                 idColumnHidden={false}
-                showDownloadBtn={true}
-                downloadButton={{
-                    url: 'download',
-                    fileName: 'km_report',
-                    messages: {
-                        success: 'Файл успешно скачан',
-                        error: 'Ошибка при скачивании',
-                    },
-                }}
-                dataSource={data}
-                filters={[
-                    {
-                        type: FilterType.DATE,
-                        name: 'startDate',
-                        placeholder: 'От даты',
-                    },
-                    {
-                        type: FilterType.DATE_RANGE,
-                        name: 'dateRange',
-                        placeholder: 'Период',
-                    },
-                    {
-                        type: FilterType.SELECT,
-                        name: 'orderType',
-                        placeholder: 'Выберите тип',
-                        transform: (value) => Number(value),
-                        options: [{ label: 'Стандарт', value: 1 }, { label: 'Экспресс', value: 2 }],
-                    },
-                ]}
-                handleRowClick={(row) => {
-                    message.info(`Клик по строке: #${row.id} ${row.title}`);
-                }}
-                searchButton={true}
-                enableViewModal={true}
-                columns={[
-                    {
-                        title: 'Название',
-                        dataIndex: 'title',
-                    },
-                    {
-                        title: 'Город отправителя',
-                        dataIndex: 'senderCity',
-                    },
-                    {
-                        title: 'Километраж',
-                        dataIndex: 'km',
-                    },
-                    createActionsColumn<RowItem>({
-                        title: 'Действия',
-                        width: 220,
-                        onEdit: handleEdit,
-                        onDelete: handleDelete,
-                        deleteConfirm: {
-                            title: 'Удалить эту доставку?',
-                            description: 'Запись будет безвозвратно удалена из базы данных.',
-                            okText: 'Да, удалить',
-                            cancelText: 'Отмена',
-                            okType: 'danger',
-                        },
-                        actions: [
-                            {
-                                key: 'copy',
-                                label: 'Копировать',
-                                icon: <Copy className="w-3.5 h-3.5" />,
-                                onClick: (row) => {
-                                    message.success(`Данные #${row.id} скопированы в буфер`);
-                                },
-                            },
-                            {
-                                key: 'lock',
-                                label: 'Блокировка',
-                                icon: <ShieldAlert className="w-3.5 h-3.5" />,
-                                danger: true,
-                                disabled: (row) => !!row.isLocked,
-                                tooltip: (row: RowItem) => row.isLocked ? 'Уже заблокировано' : 'Заблокировать запись',
-                                onClick: async (row) => {
-                                    await new Promise((res) => setTimeout(res, 600));
-                                    message.warning(`Запись #${row.id} заблокирована`);
-                                },
-                            },
-                        ],
-                    }),
-                ]}
+                enableViewModal
+                viewModalTitle="Карточка доставки"
+                handleSelectionChange={(keys) =>
+                    keys.length > 0 && toast.info(`Выбрано записей: ${keys.length}`, { id: 'selection' })
+                }
             />
         </div>
     );

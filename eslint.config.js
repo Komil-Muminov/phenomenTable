@@ -35,16 +35,7 @@ export default tseslint.config(
             'import/order': [
                 'error',
                 {
-                    groups: [
-                        'external',
-                        'builtin',
-                        'internal',
-                        'parent',
-                        'sibling',
-                        'index',
-                        'object',
-                        'type',
-                    ],
+                    groups: ['external', 'builtin', 'internal', 'parent', 'sibling', 'index', 'object', 'type'],
                     'newlines-between': 'always',
                     pathGroupsExcludedImportTypes: ['internal'],
                     alphabetize: {
@@ -55,7 +46,7 @@ export default tseslint.config(
             ],
 
             quotes: [1, 'single'],
-            'no-console': [1],
+            'no-console': ['warn', { allow: ['warn', 'error'] }],
 
             'no-unused-vars': 'off',
             '@typescript-eslint/no-unused-vars': 'off',

@@ -1,17 +1,22 @@
-import { Table, TableColumnsType, TableProps } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
-import { TableRowSelection } from 'antd/es/table/interface';
-import { IFilterItem } from '@shared/model';
-import { FiltersContainer } from './Filter/FilterContainer';
-import { MobileCardList } from './MobileCard';
-import { useMediaQuery } from './lib';
+import { Table, type TableColumnsType, type TableProps } from 'antd';
 import React, { useMemo } from 'react';
 
-interface TableContentProps<RecordType> {
+import { resolveRowKey, useMediaQuery } from './lib';
+import { MobileCardList } from './MobileCard';
+import { TableToolbar } from './TableToolbar';
+
+import type { IFilterItem, RowKeyGetter } from '@shared/model';
+import type { TableRowSelection } from 'antd/es/table/interface';
+
+const PAGE_SIZE_OPTIONS = [10, 20, 30, 50];
+
+export interface TableContentProps<RecordType> {
     tableData: RecordType[];
     columns: TableColumnsType<RecordType>;
     total: number;
     isLoading: boolean;
+    rowKey?: RowKeyGetter<RecordType>;
     filters?: IFilterItem[];
     searchButton?: boolean;
     searchButtonText?: string;
@@ -21,6 +26,7 @@ interface TableContentProps<RecordType> {
     handleRowClick?: (row: RecordType) => void;
     rowClassName?: (record: RecordType, index: number) => string;
     rowSelection?: TableRowSelection<RecordType>;
+    onToggleSelect?: (record: RecordType, checked: boolean) => void;
     idColumnHidden?: boolean;
     hideFilters?: boolean;
     title?: string;
@@ -33,11 +39,9 @@ interface TableContentProps<RecordType> {
     pageSize: number;
     onPageChange: (page: number, pageSize: number) => void;
     className?: string;
-    downloadButton?: any;
     downloadPending?: boolean;
     showDownloadBtn?: boolean;
     onDownload?: () => void;
-    // Мобильный режим
     enableMobileCards?: boolean;
     mobileBreakpoint?: number;
     primaryColumnKey?: string;
@@ -45,157 +49,127 @@ interface TableContentProps<RecordType> {
     renderMobileCard?: (record: RecordType, index: number) => React.ReactNode;
 }
 
-// Custom shallowEqual для memo
-const shallowEqual = (objA: any, objB: any) => {
-    if (objA === objB) return true;
-    const keysA = Object.keys(objA);
-    const keysB = Object.keys(objB);
-    if (keysA.length !== keysB.length) return false;
-    return keysA.every((key) => objA[key] === objB[key]);
+const ID_COLUMN = {
+    title: 'ID',
+    dataIndex: 'id',
+    key: 'id',
+    responsive: ['md' as const],
+    width: 100,
 };
 
-function TableContentComponent<RecordType extends Record<string, any> = any>(
-    props: TableContentProps<RecordType>,
-) {
+// Клики по чекбоксам, кнопкам, ссылкам и иконке раскрытия не считаем кликом по строке
+const INTERACTIVE_SELECTOR = 'button, a, input, label, .ant-table-selection-column, .ant-table-row-expand-icon';
+const isInteractiveClick = (event: React.MouseEvent) =>
+    event.target instanceof Element && Boolean(event.target.closest(INTERACTIVE_SELECTOR));
+
+function TableContentComponent<RecordType>(props: TableContentProps<RecordType>) {
     const {
         tableData,
         columns,
         total,
         isLoading,
+        rowKey = 'id',
         filters,
         searchButton = false,
         searchButtonText = 'Поиск',
         searchButtonIcon = <SearchOutlined style={{ fontSize: 16 }} />,
-        onApplyFilters,
-        onResetFilters,
         handleRowClick,
-        rowClassName,
-        rowSelection,
         idColumnHidden,
         hideFilters,
-        title,
-        style,
         hiddenPagination,
-        expandable,
         disableScrollX,
-        virtual = false,
         pageNumber,
         pageSize,
         onPageChange,
-        className,
-        downloadButton,
-        downloadPending,
-        showDownloadBtn,
-        onDownload,
         enableMobileCards = true,
         mobileBreakpoint = 768,
-        primaryColumnKey,
-        hiddenInMobileColumns,
-        renderMobileCard,
     } = props;
 
     const isMobile = useMediaQuery(mobileBreakpoint);
-    const shouldShowMobileCards = enableMobileCards && isMobile;
+    const showMobileCards = enableMobileCards && isMobile;
 
-    // useMemo для columnsWithId
-    const columnsWithId = useMemo(() => {
-        if (idColumnHidden) {
-            return columns;
-        }
-        return [
-            {
-                title: 'ID',
-                dataIndex: 'id',
-                key: 'id',
-                render: (_: any, record: any) => record.id,
-                responsive: ['md'] as any,
-                width: '100px',
-            },
-            ...columns,
-        ];
-    }, [columns, idColumnHidden]);
+    const columnsWithId = useMemo<TableColumnsType<RecordType>>(
+        () => (idColumnHidden ? columns : [ID_COLUMN, ...columns]),
+        [columns, idColumnHidden],
+    );
 
-    const handleRowClickWithStop = (record: any, e: React.MouseEvent<HTMLElement>) => {
-        if (expandable) return;
-        e.stopPropagation();
-        handleRowClick?.(record);
-    };
+    const getRowKey = useMemo(() => (record: RecordType) => resolveRowKey(record, rowKey), [rowKey]);
+
+    const pagination: TableProps<RecordType>['pagination'] = hiddenPagination
+        ? false
+        : {
+              total,
+              current: pageNumber,
+              pageSize,
+              pageSizeOptions: PAGE_SIZE_OPTIONS,
+              showSizeChanger: true,
+              responsive: true,
+              showTotal: (count, range) => (
+                  <span className="text-xs sm:text-sm">{`${range[0]}-${range[1]} из ${count}`}</span>
+              ),
+              onChange: onPageChange,
+          };
 
     return (
         <div>
-            {/* Filters */}
             {filters && !hideFilters && (
-                <div className={`!flex !flex-col !items-end !sm:flex-row !sm:!items-center ${style || ''}`}>
-                    {title && <h2 className="text-base sm:text-lg font-semibold sm:mr-auto mb-2 sm:mb-0">{title}</h2>}
-                    <div className="flex !items-center gap-3 w-full sm:w-auto">
-                        <FiltersContainer
-                            filters={filters}
-                            searchMode={searchButton}
-                            searchButtonText={searchButtonText}
-                            searchButtonIcon={searchButtonIcon}
-                            onApplyFilters={onApplyFilters}
-                            onResetFilters={onResetFilters}
-                            isLoading={isLoading}
-                            onDownload={onDownload}
-                            downloadPending={downloadPending}
-                            showDownloadBtn={showDownloadBtn}
-                        />
-                    </div>
-                </div>
+                <TableToolbar
+                    filters={filters}
+                    title={props.title}
+                    className={props.style}
+                    searchButton={searchButton}
+                    searchButtonText={searchButtonText}
+                    searchButtonIcon={searchButtonIcon}
+                    isLoading={isLoading}
+                    onApplyFilters={props.onApplyFilters}
+                    onResetFilters={props.onResetFilters}
+                    showDownloadBtn={props.showDownloadBtn}
+                    downloadPending={props.downloadPending}
+                    onDownload={props.onDownload}
+                />
             )}
 
-            {/* Отображение: Мобильные карточки или Классическая таблица */}
-            {shouldShowMobileCards ? (
+            {showMobileCards ? (
                 <MobileCardList
                     tableData={tableData}
                     columns={columnsWithId}
                     total={total}
                     isLoading={isLoading}
+                    getRowKey={getRowKey}
                     pageNumber={pageNumber}
                     pageSize={pageSize}
                     onPageChange={onPageChange}
                     handleRowClick={handleRowClick}
-                    rowSelection={rowSelection}
-                    rowClassName={rowClassName}
-                    primaryColumnKey={primaryColumnKey}
-                    hiddenInMobileColumns={hiddenInMobileColumns}
-                    renderMobileCard={renderMobileCard}
+                    rowSelection={props.rowSelection}
+                    onToggleSelect={props.onToggleSelect}
+                    rowClassName={props.rowClassName}
+                    primaryColumnKey={props.primaryColumnKey}
+                    hiddenInMobileColumns={props.hiddenInMobileColumns}
+                    renderMobileCard={props.renderMobileCard}
                     hiddenPagination={hiddenPagination}
                 />
             ) : (
                 <div className={disableScrollX ? '' : 'overflow-x-auto'}>
-                    <Table
-                        expandable={expandable}
-                        virtual={virtual}
-                        className={`custom-table cursor-pointer ${className || ''} sm:size-default`}
+                    <Table<RecordType>
+                        expandable={props.expandable}
+                        virtual={props.virtual}
+                        className={`custom-table ${handleRowClick ? 'cursor-pointer' : ''} ${props.className ?? ''}`}
                         loading={isLoading}
                         dataSource={tableData}
                         columns={columnsWithId}
-                        rowKey="id"
-                        rowClassName={rowClassName}
-                        rowSelection={rowSelection}
-                        onRow={(record) => ({
-                            onClick: (e: React.MouseEvent<HTMLElement>) => handleRowClickWithStop(record, e),
-                        })}
+                        rowKey={getRowKey}
+                        rowClassName={props.rowClassName}
+                        rowSelection={props.rowSelection}
+                        onRow={
+                            handleRowClick
+                                ? (record) => ({
+                                      onClick: (event) => !isInteractiveClick(event) && handleRowClick(record),
+                                  })
+                                : undefined
+                        }
                         scroll={disableScrollX ? undefined : { x: 'max-content' }}
                         size="small"
-                        pagination={
-                            !hiddenPagination
-                                ? {
-                                      total,
-                                      current: pageNumber,
-                                      pageSize,
-                                      pageSizeOptions: [10, 20, 30],
-                                      showSizeChanger: true,
-                                      responsive: true,
-                                      showQuickJumper: false,
-                                      showTotal: (total, range) => (
-                                          <span className="text-xs sm:text-sm">{`${range[0]}-${range[1]} из ${total}`}</span>
-                                      ),
-                                      onChange: onPageChange,
-                                  }
-                                : false
-                        }
+                        pagination={pagination}
                     />
                 </div>
             )}
@@ -203,5 +177,4 @@ function TableContentComponent<RecordType extends Record<string, any> = any>(
     );
 }
 
-// Оборачиваем в memo и экспортируем
-export const TableContent = React.memo(TableContentComponent, shallowEqual) as typeof TableContentComponent;
+export const TableContent = React.memo(TableContentComponent) as typeof TableContentComponent;

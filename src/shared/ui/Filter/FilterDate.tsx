@@ -1,107 +1,67 @@
-import { FC, useEffect, useState } from 'react';
+import { useDynamicSearchParams } from '@shared/lib';
+import { FilterType, type IFilterItem } from '@shared/model';
 import { DatePicker } from 'antd';
-import { useDynamicSearchParams, useDebouncedCallback } from '@shared/lib';
-import dayjs, { Dayjs } from 'dayjs';
-import { IFilterItem } from '@shared/model';
+import dayjs, { type Dayjs } from 'dayjs';
+import { FC, useMemo } from 'react';
 
 const { RangePicker } = DatePicker;
+
+const URL_FORMAT = 'YYYY-MM-DD';
+const DISPLAY_FORMAT = 'DD.MM.YYYY';
 
 interface IProps {
     config: IFilterItem;
     customClass?: string;
 }
 
+// Строгий парсинг: мусор из URL не превращается в «Invalid Date» в пикере
+const parseDate = (value?: string): Dayjs | null => {
+    if (!value) return null;
+    const date = dayjs(value, URL_FORMAT, true);
+    return date.isValid() ? date : null;
+};
+
+/** Одиночная дата (`name`) или диапазон (`nameFrom` + `nameTo`) — значение живёт в URL */
 export const FilterDate: FC<IProps> = ({ config, customClass }) => {
     const { params, setParams } = useDynamicSearchParams();
-    const [value, setValue] = useState<Dayjs | null>(null);
-    const [rangeValue, setRangeValue] = useState<[Dayjs | null, Dayjs | null] | null>(null);
-
     const { placeholder, name, type } = config;
-    const isRangeType = type === 'date-range';
+    const fromKey = `${name}From`;
+    const toKey = `${name}To`;
 
-    // Debounce для одиночной даты
-    const debouncedChange = useDebouncedCallback((value: string) => {
-        setParams(name, value);
-    }, 400);
+    const single = useMemo(() => parseDate(params[name]), [params, name]);
+    const range = useMemo<[Dayjs, Dayjs] | null>(() => {
+        const from = parseDate(params[fromKey]);
+        const to = parseDate(params[toKey]);
+        return from && to ? [from, to] : null;
+    }, [params, fromKey, toKey]);
 
-    // Debounce для диапазона дат
-    const debouncedRangeChange = useDebouncedCallback((startDate: string, endDate: string) => {
-        setParams(`${name}From`, startDate);
-        setParams(`${name}To`, endDate);
-    }, 400);
-
-    // Обработчик для одиночной даты
-    const handleChange = (date: Dayjs | null) => {
-        if (!date) {
-            setValue(null);
-            debouncedChange('');
-            return;
-        }
-        setValue(date);
-        debouncedChange(date.format('YYYY-MM-DD'));
-    };
-
-    // Обработчик для диапазона дат
-    const handleRangeChange = (dates: [Dayjs | null, Dayjs | null] | null) => {
-        if (!dates || !dates[0] || !dates[1]) {
-            setRangeValue(null);
-            // Удаляем параметры из URL
-            setParams(`${name}From`, '');
-            setParams(`${name}To`, '');
-            return;
-        }
-        setRangeValue(dates);
-        setParams(`${name}From`, dates[0].format('YYYY-MM-DD'));
-        setParams(`${name}To`, dates[1].format('YYYY-MM-DD'));
-    };
-
-    // Эффект для одиночной даты
-    useEffect(() => {
-        if (isRangeType) return;
-
-        const paramValue = params[name];
-        if (paramValue && dayjs(paramValue).isValid()) {
-            setValue(dayjs(paramValue));
-        } else {
-            setValue(null);
-        }
-    }, [params[name], isRangeType]);
-
-    // Эффект для диапазона дат
-    useEffect(() => {
-        if (!isRangeType) return;
-
-        const fromValue = params[`${name}From`];
-        const toValue = params[`${name}To`];
-
-        if (fromValue && toValue && dayjs(fromValue).isValid() && dayjs(toValue).isValid()) {
-            setRangeValue([dayjs(fromValue), dayjs(toValue)]);
-        } else {
-            setRangeValue(null);
-        }
-    }, [params[`${name}From`], params[`${name}To`], isRangeType]);
-
-    // Рендер RangePicker для диапазона дат
-    if (isRangeType) {
+    if (type === FilterType.DATE_RANGE) {
         return (
             <RangePicker
                 placeholder={[placeholder || 'От', 'До']}
-                value={rangeValue}
-                onChange={handleRangeChange}
-                format="YYYY-MM-DD"
+                value={range}
+                format={DISPLAY_FORMAT}
                 className={customClass}
+                onChange={(dates) => {
+                    const [from, to] = dates ?? [];
+                    // Записываем только полный диапазон, иначе чистим оба ключа
+                    const isFull = Boolean(from && to);
+                    setParams({
+                        [fromKey]: isFull ? from!.format(URL_FORMAT) : '',
+                        [toKey]: isFull ? to!.format(URL_FORMAT) : '',
+                    });
+                }}
             />
         );
     }
 
-    // Рендер обычного DatePicker для одиночной даты
     return (
         <DatePicker
             placeholder={placeholder}
-            value={value}
-            onChange={handleChange}
-            format="YYYY-MM-DD"
+            value={single}
+            format={DISPLAY_FORMAT}
             className={customClass}
+            onChange={(date) => setParams(name, date ? date.format(URL_FORMAT) : '')}
         />
     );
 };

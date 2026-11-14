@@ -1,7 +1,10 @@
-import { FC, useEffect, useState } from 'react';
+import { useDebouncedCallback, useDynamicSearchParams } from '@shared/lib';
 import { Input } from 'antd';
-import { useDynamicSearchParams, useDebouncedCallback } from '@shared/lib';
-import { IFilterItem } from '@shared/model';
+import { FC, useEffect, useState } from 'react';
+
+import type { IFilterItem } from '@shared/model';
+
+const MAX_LENGTH = 200;
 
 interface IProps {
     config: IFilterItem;
@@ -19,20 +22,24 @@ export const FilterInput: FC<IProps> = ({ config, customClass }) => {
     }, 400);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setValue(e.target.value);
-        debouncedChange(e.target.value);
+        // Режем слишком длинный ввод, в URL пробелы по краям не нужны
+        const next = e.target.value.slice(0, MAX_LENGTH);
+        setValue(next);
+        debouncedChange(next.trim());
     };
 
+    // Синхронизация с URL (назад/вперёд, сброс фильтров)
+    const urlValue = params[name] ?? '';
     useEffect(() => {
-        if (params[name] !== value) {
-            setValue(params[name] || '');
-        }
-    }, [params[name]]);
+        setValue((current) => (current.trim() === urlValue ? current : urlValue));
+    }, [urlValue]);
 
     return (
         <Input
-            value={value}
+            allowClear
+            maxLength={MAX_LENGTH}
             {...inputProps}
+            value={value}
             placeholder={placeholder}
             onChange={handleChange}
             className={customClass}

@@ -1,210 +1,151 @@
 import { useDynamicSearchParams, useGetQuery } from '@shared/lib';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { formatDatesInObject } from '@shared/utils';
-import { IFilterItem } from '@shared/model';
+import { keepPreviousData } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-const DEFAULT_PAGE_SIZE = 10;
+import {
+    buildRequestParams,
+    getFilterParamNames,
+    parsePagination,
+    pickFilterValues,
+    transformFilterValues,
+} from './smartTableParams';
+
+import type { IFilterItem } from '@shared/model';
 
 interface UseSmartTableOptions<RecordType, ResponseType> {
     url?: string;
-    queryParams?: Record<string, any>;
+    queryParams?: Record<string, unknown>;
     filters?: IFilterItem[];
     dataSource?: RecordType[];
     getItemsFromResponse?: (response: ResponseType) => RecordType[];
+    getTotalFromResponse?: (response: ResponseType) => number;
     searchButton?: boolean;
-    requestTransform?: (params: any) => any;
-    responseTransform?: (response: any) => ResponseType;
+    localFilter?: (record: RecordType, filters: Record<string, unknown>) => boolean;
+    requestTransform?: (params: Record<string, unknown>) => unknown;
+    responseTransform?: (response: unknown) => ResponseType;
 }
 
-export const useSmartTable = <RecordType = any, ResponseType = any>(
+const EMPTY_FILTERS: IFilterItem[] = [];
+
+// Дефолтный формат ответа: { items, total }
+const defaultGetItems = (response: unknown) => (response as { items?: unknown[] })?.items ?? [];
+const defaultGetTotal = (response: unknown) => Number((response as { total?: number })?.total) || 0;
+
+export const useSmartTable = <RecordType, ResponseType = unknown>(
     options: UseSmartTableOptions<RecordType, ResponseType>,
 ) => {
     const {
         url,
         queryParams,
-        filters = [],
+        filters = EMPTY_FILTERS,
         dataSource,
-        getItemsFromResponse = (response: any) => response?.items ?? [],
+        getItemsFromResponse = defaultGetItems as (response: ResponseType) => RecordType[],
+        getTotalFromResponse = defaultGetTotal,
         searchButton = false,
+        localFilter,
         requestTransform,
         responseTransform,
     } = options;
 
     const { params: searchParams, setParams, deleteParams } = useDynamicSearchParams();
-    const { pageNumber, pageSize } = searchParams;
+    const { pageNumber, pageSize } = parsePagination(searchParams.pageNumber, searchParams.pageSize);
 
-    const [pendingFilters, setPendingFilters] = useState<Record<string, any>>({});
-    const [shouldRefetch, setShouldRefetch] = useState(false);
+    const filterValues = useMemo(() => pickFilterValues(searchParams, filters), [searchParams, filters]);
 
-    // Получаем значения фильтров из URL
-    const filterValues = useMemo(() => {
-        return filters.reduce((acc, filter) => {
-            // Для date-range берем оба параметра
-            if (filter.type === 'date-range') {
-                const fromValue = searchParams[`${filter.name}From`];
-                const toValue = searchParams[`${filter.name}To`];
-                if (fromValue && toValue) {
-                    acc[`${filter.name}From`] = fromValue;
-                    acc[`${filter.name}To`] = toValue;
-                }
-            } else {
-                const value = searchParams[filter.name];
-                if (value !== undefined && value !== '') {
-                    acc[filter.name] = value;
-                }
-            }
-            return acc;
-        }, {} as Record<string, any>);
-    }, [searchParams, filters]);
+    // В режиме searchButton применяются только «зафиксированные» фильтры.
+    // Стартуем со значений из URL — иначе ссылка с фильтрами открывается без них
+    const [appliedFilters, setAppliedFilters] = useState(filterValues);
+    const activeFilters = searchButton ? appliedFilters : filterValues;
 
-    // Трансформируем фильтры
-    const transformedFilters = useMemo(() => {
-        const filtersToTransform = searchButton ? pendingFilters : filterValues;
+    const transformedFilters = useMemo(() => transformFilterValues(activeFilters, filters), [activeFilters, filters]);
 
-        return Object.keys(filtersToTransform).reduce((acc, key) => {
-            // Находим оригинальное имя фильтра (без From/To)
-            const baseFilterName = key.replace(/From$|To$/, '');
-            const filterConfig = filters.find((f) => f.name === baseFilterName || f.name === key);
-            let value = filtersToTransform[key];
-
-            if (filterConfig?.transform) {
-                value = filterConfig.transform(value, filterConfig.options);
-            } else if (filterConfig?.options && typeof value === 'string') {
-                const option = filterConfig.options.find((o) => o.label === value);
-                if (option) value = option.value;
-            }
-
-            acc[key] = value;
-            return acc;
-        }, {} as Record<string, any>);
-    }, [searchButton, pendingFilters, filterValues, filters]);
-
-    // Формируем параметры запроса
     const params = useMemo(() => {
-        const cleanedFilters = Object.entries(transformedFilters).reduce((acc, [key, value]) => {
-            if (
-                value !== undefined &&
-                value !== null &&
-                (value !== '' || typeof value === 'number' || (Array.isArray(value) && value.length > 0))
-            ) {
-                acc[key] = value;
-            }
-            return acc;
-        }, {} as Record<string, any>);
-
-        const baseParams: any = {
-            ...queryParams,
-            pageInfo: {
-                pageNumber: Number(pageNumber) || 1,
-                pageSize: Number(pageSize) || DEFAULT_PAGE_SIZE,
-            },
-        };
-
-        if (Object.keys(cleanedFilters).length > 0) {
-            baseParams.filters = {
-                ...(queryParams?.filters ?? {}),
-                ...cleanedFilters,
-            };
-        } else if (queryParams?.filters) {
-            baseParams.filters = queryParams.filters;
-        }
-
-        return requestTransform ? requestTransform(baseParams) : baseParams;
+        const base = buildRequestParams({ queryParams, filters: transformedFilters, pageNumber, pageSize });
+        return requestTransform ? requestTransform(base) : base;
     }, [queryParams, transformedFilters, pageNumber, pageSize, requestTransform]);
 
-    // Запрос данных
+    const isStatic = Array.isArray(dataSource);
+
+    // keepPreviousData: при смене страницы держим старые строки под лоадером, без мигания пустотой
     const {
         data: rawData,
-        isLoading,
+        isFetching,
         refetch,
-    } = useGetQuery({
+    } = useGetQuery<unknown, unknown>({
         url: url ?? '',
         params,
-        options: { enabled: Boolean(url) },
+        options: { enabled: Boolean(url) && !isStatic, placeholderData: keepPreviousData },
     });
 
-    const data = useMemo(() => {
-        return responseTransform && rawData ? responseTransform(rawData) : rawData;
-    }, [rawData, responseTransform]);
+    const data = useMemo(
+        () => (rawData !== undefined && responseTransform ? responseTransform(rawData) : (rawData as ResponseType)),
+        [rawData, responseTransform],
+    );
 
-    // Рефетч при изменении фильтров в режиме searchButton
+    // Сброс на 1-ю страницу при смене фильтров (в обычном режиме)
+    const filtersKey = JSON.stringify(transformedFilters);
+    const prevFiltersKey = useRef(filtersKey);
     useEffect(() => {
-        if (shouldRefetch && refetch) {
-            refetch();
-            setShouldRefetch(false);
-        }
-    }, [shouldRefetch, refetch]);
+        if (prevFiltersKey.current === filtersKey) return;
+        prevFiltersKey.current = filtersKey;
+        if (!searchButton && pageNumber !== 1) setParams('pageNumber', 1);
+    }, [filtersKey, searchButton, pageNumber, setParams]);
 
-    // Инициализация пагинации
-    useEffect(() => {
-        if (!pageSize) setParams('pageSize', DEFAULT_PAGE_SIZE);
-        if (!pageNumber) setParams('pageNumber', 1);
-    }, [pageSize, pageNumber, setParams]);
-
-    // Сброс пагинации при изменении фильтров (без searchButton)
-    const prevFiltersRef = useRef<string>();
-    const isFirstRender = useRef(true);
-
-    useEffect(() => {
-        if (searchButton) return;
-
-        const currentFiltersString = JSON.stringify(transformedFilters);
-
-        if (isFirstRender.current) {
-            prevFiltersRef.current = currentFiltersString;
-            isFirstRender.current = false;
-            return;
-        }
-
-        if (prevFiltersRef.current !== currentFiltersString) {
-            prevFiltersRef.current = currentFiltersString;
-            setParams('pageNumber', 1);
-        }
-    }, [transformedFilters, searchButton, setParams]);
-
-    // Обработчики фильтров
-    const handleApplyFilters = () => {
-        setPendingFilters({ ...filterValues });
+    const handleApplyFilters = useCallback(() => {
+        const isSame = JSON.stringify(filterValues) === JSON.stringify(appliedFilters);
+        setAppliedFilters(filterValues);
         setParams('pageNumber', 1);
-        setTimeout(() => setShouldRefetch(true), 0);
-    };
+        // Те же фильтры → ключ запроса не меняется, поэтому перезапрашиваем явно
+        if (isSame && pageNumber === 1 && url && !isStatic) void refetch();
+    }, [filterValues, appliedFilters, setParams, pageNumber, url, isStatic, refetch]);
 
-    const handleResetFilters = () => {
-        // Собираем все имена параметров для удаления, включая From/To для date-range
-        const filterNames: string[] = [];
-        filters.forEach((filter) => {
-            if (filter.type === 'date-range') {
-                filterNames.push(`${filter.name}From`);
-                filterNames.push(`${filter.name}To`);
-            } else {
-                filterNames.push(filter.name);
-            }
-        });
-
-        deleteParams(filterNames);
+    const handleResetFilters = useCallback(() => {
+        deleteParams(filters.flatMap(getFilterParamNames));
         setParams('pageNumber', 1);
+        setAppliedFilters({});
+    }, [filters, deleteParams, setParams]);
 
-        if (searchButton) {
-            setPendingFilters({});
+    const setPage = useCallback(
+        (page: number, size: number) => setParams({ pageNumber: page, pageSize: size }),
+        [setParams],
+    );
+
+    // Для статики режем страницу сами — одинаково для таблицы и карточек
+    // Если после удаления строк текущая страница опустела — показываем последнюю непустую
+    const { tableData, total } = useMemo(() => {
+        if (isStatic) {
+            const filtered = localFilter
+                ? dataSource.filter((row) => localFilter(row, transformedFilters))
+                : dataSource;
+            const lastPage = Math.max(1, Math.ceil(filtered.length / pageSize));
+            const start = (Math.min(pageNumber, lastPage) - 1) * pageSize;
+            return { tableData: filtered.slice(start, start + pageSize), total: filtered.length };
         }
-
-        setTimeout(() => setShouldRefetch(true), 0);
-    };
-
-    // Подготовка данных таблицы
-    const rawItems = dataSource ?? (data ? getItemsFromResponse(data) : []);
-    const tableData = rawItems?.map(formatDatesInObject);
+        if (data === undefined || data === null) return { tableData: [] as RecordType[], total: 0 };
+        return { tableData: getItemsFromResponse(data) ?? [], total: getTotalFromResponse(data) };
+    }, [
+        isStatic,
+        dataSource,
+        localFilter,
+        transformedFilters,
+        pageNumber,
+        pageSize,
+        data,
+        getItemsFromResponse,
+        getTotalFromResponse,
+    ]);
 
     return {
         tableData,
-        total: data?.total ?? 0,
-        isLoading,
+        total,
+        isLoading: isFetching,
         filterValues,
         transformedFilters,
         handleApplyFilters,
         handleResetFilters,
-        pageNumber: Number(pageNumber) || 1,
-        pageSize: Number(pageSize) || DEFAULT_PAGE_SIZE,
+        pageNumber: isStatic ? Math.min(pageNumber, Math.max(1, Math.ceil(total / pageSize))) : pageNumber,
+        pageSize,
+        setPage,
         setParams,
         data,
     };

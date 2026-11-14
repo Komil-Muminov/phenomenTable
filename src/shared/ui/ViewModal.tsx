@@ -1,63 +1,64 @@
-import { Modal, Descriptions } from 'antd';
-import { TableColumnType } from 'antd';
-import React from 'react';
+import { formatDisplayValue } from '@shared/utils';
+import { Descriptions, Modal, type TableColumnsType } from 'antd';
 
-export interface ViewModalColumn<T = any> extends TableColumnType<T> {
-    title?: React.ReactNode;
-    dataIndex?: string | string[];
-    key?: string;
-    render?: (value: any, record: T, index?: number) => React.ReactNode;
-}
+import { getValueByDataIndex } from './lib/rowKey';
 
-interface ViewModalProps<T = any> {
+import type { ReactNode } from 'react';
+
+interface ViewModalProps<T> {
     visible: boolean;
     onClose: () => void;
     data: T | null;
     title?: string;
-    columns?: ViewModalColumn<T>[];
+    columns?: TableColumnsType<T>;
 }
 
-export function ViewModal<T = any>({
-    visible,
-    onClose,
-    data,
-    title = 'Просмотр данных',
-    columns = [],
-}: ViewModalProps<T>) {
+interface Field<T> {
+    key: string;
+    label: ReactNode;
+    dataIndex: unknown;
+    render?: (value: unknown, record: T, index: number) => ReactNode;
+}
+
+// Объекты и массивы без своего render показываем как JSON, а не [object Object]
+const toDisplay = (value: unknown): ReactNode => {
+    if (value === null || value === undefined || value === '') return '—';
+    if (typeof value === 'boolean') return value ? 'Да' : 'Нет';
+    if (typeof value === 'object') return JSON.stringify(value);
+    return formatDisplayValue(value) as ReactNode;
+};
+
+const buildFields = <T,>(columns: TableColumnsType<T>, data: T): Field<T>[] => {
+    const withData = columns.filter((col) => 'dataIndex' in col && col.dataIndex !== undefined);
+
+    if (withData.length === 0) {
+        // Колонок нет — показываем все поля записи
+        return Object.keys(data as object).map((key) => ({ key, label: key, dataIndex: key }));
+    }
+
+    return withData.map((col, index) => {
+        const dataIndex = 'dataIndex' in col ? col.dataIndex : undefined;
+        const path = Array.isArray(dataIndex) ? dataIndex.join('.') : String(dataIndex);
+        return {
+            key: String(col.key ?? path ?? index),
+            label: (col.title as ReactNode) ?? path,
+            dataIndex,
+            render: col.render as Field<T>['render'],
+        };
+    });
+};
+
+export function ViewModal<T>({ visible, onClose, data, title = 'Просмотр данных', columns = [] }: ViewModalProps<T>) {
     if (!data) return null;
 
-    const validColumns = columns.filter((col) => col.dataIndex) as ViewModalColumn<T>[];
-    // Если columns не переданы или пусты, показываем все поля
-    const fields =
-        validColumns.length > 0
-            ? validColumns
-            : (Object.keys(data)?.map((key) => ({
-                  title: key,
-                  dataIndex: key,
-              })) as ViewModalColumn<T>[]); 
-
-    // Функция для получения значения по dataIndex
-    const getValueByPath = (obj: any, path: string | string[]): any => {
-        if (typeof path === 'string') {
-            return obj[path];
-        }
-        return path.reduce((acc, key) => acc?.[key], obj);
-    };
-
     return (
-        <Modal title={title} open={visible} onCancel={onClose} footer={null} width={700}>
-            <Descriptions bordered column={1}>
-                {fields?.map((field, index) => {
-                    const value = getValueByPath(data, field.dataIndex!);
-                    const displayValue = field.render ? field.render(value, data, index) : value ?? '-';
-                    const key =
-                        field.key ||
-                        (typeof field.dataIndex === 'string' ? field.dataIndex : field.dataIndex?.join('.')) ||
-                        `field-${index}`;
-
+        <Modal title={title} open={visible} onCancel={onClose} footer={null} width={700} destroyOnClose>
+            <Descriptions bordered column={1} size="small">
+                {buildFields(columns, data).map((field, index) => {
+                    const value = getValueByDataIndex(data, field.dataIndex);
                     return (
-                        <Descriptions.Item key={key} label={field.title || 'N/A'}>
-                            {displayValue}
+                        <Descriptions.Item key={field.key} label={field.label}>
+                            {field.render ? field.render(value, data, index) : toDisplay(value)}
                         </Descriptions.Item>
                     );
                 })}

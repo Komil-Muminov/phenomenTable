@@ -1,67 +1,66 @@
-const ACCESS_TOKEN_KEY = 'zudbar/accessToken';
-const ACCESS_TOKEN_EXPIRE_KEY = 'zudbar/accessTokenExpire';
-const REFRESH_TOKEN_KEY = 'zudbar/refreshToken';
-const ROLE_ID_KEY = 'zudbar/roleId';
-const USER_ID = 'zudbar/userId';
-const USER_LOGIN = 'zudbar/userLogin';
-const ORG_ICON = 'orgIcon';
+// Все ключи хранилища под одним префиксом — проще чистить и не пересекаться с чужими данными
+const STORAGE_PREFIX = 'phenomen';
+
+const KEYS = {
+    accessToken: `${STORAGE_PREFIX}/accessToken`,
+    accessTokenExpire: `${STORAGE_PREFIX}/accessTokenExpire`,
+    refreshToken: `${STORAGE_PREFIX}/refreshToken`,
+    roleId: `${STORAGE_PREFIX}/roleId`,
+    userId: `${STORAGE_PREFIX}/userId`,
+    userLogin: `${STORAGE_PREFIX}/userLogin`,
+    orgIcon: `${STORAGE_PREFIX}/orgIcon`,
+} as const;
 
 interface IToken {
     accessToken: string;
     refreshToken?: string;
+    /** Время жизни токена в секундах */
     expireTime?: number;
 }
 
+type StorableValue = string | number | null | undefined;
+
+// localStorage может бросить (приватный режим, переполнение) — не роняем приложение
+const read = (key: string): string | null => {
+    try {
+        return localStorage.getItem(key);
+    } catch {
+        return null;
+    }
+};
+
+const write = (key: string, value: StorableValue) => {
+    try {
+        if (value === null || value === undefined || value === '') localStorage.removeItem(key);
+        else localStorage.setItem(key, String(value));
+    } catch {
+        /* хранилище недоступно — молча пропускаем */
+    }
+};
+
 export const tokenControl = {
     set: ({ accessToken, refreshToken, expireTime }: IToken) => {
-        localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-        localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken || '');
-        if (expireTime) {
-            localStorage.setItem(ACCESS_TOKEN_EXPIRE_KEY, String(Date.now() + (expireTime || 0) * 1000));
-        }
+        write(KEYS.accessToken, accessToken);
+        write(KEYS.refreshToken, refreshToken);
+        const isValidExpire = typeof expireTime === 'number' && Number.isFinite(expireTime) && expireTime > 0;
+        write(KEYS.accessTokenExpire, isValidExpire ? Date.now() + expireTime * 1000 : null);
     },
-    get: () => {
-        return localStorage.getItem(ACCESS_TOKEN_KEY);
-    },
+    get: () => read(KEYS.accessToken),
+    getRefresh: () => read(KEYS.refreshToken),
     isExpired: () => {
-        const expireTime = localStorage.getItem(ACCESS_TOKEN_EXPIRE_KEY);
-        if (expireTime) {
-            return Date.now() > Number(expireTime);
-        }
-        return false;
-    },
-    setRoleId: (roleId: any) => {
-        localStorage.setItem(ROLE_ID_KEY, roleId);
+        const expireAt = Number(read(KEYS.accessTokenExpire));
+        return expireAt > 0 && Date.now() > expireAt;
     },
 
-    getRoleId: () => {
-        return localStorage.getItem(ROLE_ID_KEY);
-    },
+    setRoleId: (roleId: StorableValue) => write(KEYS.roleId, roleId),
+    getRoleId: () => read(KEYS.roleId),
+    setUserId: (userId: StorableValue) => write(KEYS.userId, userId),
+    getUserId: () => read(KEYS.userId),
+    setLogin: (login: StorableValue) => write(KEYS.userLogin, login),
+    getLogin: () => read(KEYS.userLogin),
+    setOrgIcon: (orgIcon: StorableValue) => write(KEYS.orgIcon, orgIcon),
+    getOrgIcon: () => read(KEYS.orgIcon),
 
-    setLogin: (login: string | number) => {
-        localStorage.setItem(USER_LOGIN, String(login));
-    },
-    getLogin: () => {
-        return localStorage.getItem(USER_LOGIN);
-    },
-    setOrgIcon: (orgIcon: any) => {
-        localStorage.setItem(ORG_ICON, orgIcon);
-    },
-
-    getOrgIcon: () => {
-        return localStorage.getItem(ORG_ICON);
-    },
-
-    remove: () => {
-        localStorage.removeItem(ACCESS_TOKEN_KEY);
-        localStorage.removeItem(REFRESH_TOKEN_KEY);
-        localStorage.removeItem(ROLE_ID_KEY);
-    },
-
-    setUserId: (userId: any) => {
-        localStorage.setItem(USER_ID, userId);
-    },
-    getUserId: () => {
-        return localStorage.getItem(USER_ID);
-    },
+    /** Полный логаут: чистим все ключи сессии */
+    remove: () => Object.values(KEYS).forEach((key) => write(key, null)),
 };

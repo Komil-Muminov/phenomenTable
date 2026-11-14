@@ -1,86 +1,64 @@
-import { useMutation, useQueryClient, type UseMutationOptions } from '@tanstack/react-query';
-import { useCallback } from 'react';
-import { toast } from 'react-toastify';
 import { _axios } from '@shared/config';
+import { useMutation, useQueryClient, type UseMutationOptions } from '@tanstack/react-query';
 
-interface IUseMutationQueryOptions<TRequest = any, TResponse = any> {
+import { toast } from '../../ui/Toast';
+import { getErrorMessage } from '../api/getErrorMessage';
+
+interface IUseMutationQueryOptions<TRequest, TResponse> {
     url: string;
-    method: 'POST' | 'PUT' | 'DELETE';
+    method: 'POST' | 'PUT' | 'PATCH' | 'DELETE';
     messages?: {
         success?: string;
+        /** Свой текст ошибки. Если не задан — берём текст с бэкенда */
         error?: string;
         invalidate?: string[];
         cb?: (data: TResponse) => void;
     };
-    queryParams?: Record<string, any>;
+    queryParams?: Record<string, unknown>;
     queryOptions?: Partial<UseMutationOptions<TResponse, unknown, TRequest, unknown>>;
 }
 
-export const useMutationQuery = <TRequest = any, TResponse = any>(
+export const useMutationQuery = <TRequest = unknown, TResponse = unknown>(
     options: IUseMutationQueryOptions<TRequest, TResponse>,
 ) => {
     const { url, method, messages, queryParams, queryOptions } = options;
-
     const queryClient = useQueryClient();
 
-    const mutationFn = useCallback(
-        async (data: TRequest) => {
-            const response = await _axios<TResponse>({
+    return useMutation<TResponse, unknown, TRequest, unknown>({
+        ...queryOptions,
+        mutationFn: async (data: TRequest) => {
+            const response = await _axios.request<TResponse>({
                 url,
                 method,
                 data,
-                params: queryParams || undefined,
-                suppressErrorToast: Boolean(messages?.error),
-            } as any);
-
+                params: queryParams,
+                // Тост ошибки показываем здесь, а не в interceptor — иначе будет дубль
+                suppressErrorToast: true,
+            });
             return response.data;
         },
-        [url, method, queryParams, messages?.error],
-    );
-
-    const originalOnSuccess = queryOptions?.onSuccess;
-    const originalOnError = queryOptions?.onError;
-
-    return useMutation<TResponse, unknown, TRequest, unknown>({
-        mutationFn,
-        ...queryOptions,
-        onSuccess: (data, variables, context) => {
-            if (messages?.success) {
-                toast.success(messages.success);
-            }
-
+        // Аргументы колбэков пробрасываем как есть — сигнатура зависит от версии TanStack Query
+        onSuccess: async (...args) => {
+            const [data] = args;
+            if (messages?.success) toast.success(messages.success);
             messages?.cb?.(data);
+            await queryOptions?.onSuccess?.(...args);
 
-            if (originalOnSuccess) {
-                (originalOnSuccess as any)(data, variables, context);
-            }
-
+            // invalidateQueries сам перезапрашивает активные запросы
             if (messages?.invalidate) {
-                queryClient.invalidateQueries({ queryKey: messages.invalidate });
-                queryClient.refetchQueries({ queryKey: messages.invalidate });
+                await queryClient.invalidateQueries({ queryKey: messages.invalidate });
             }
         },
-        onError: (error, variables, context) => {
-            let errorMessage = 'Произошла ошибка';
-
-            if (error && typeof error === 'object') {
-                const err = error as any;
-                if (err?.response?.data?.Message) {
-                    errorMessage = err.response.data.Message;
-                } else if (err?.response?.data?.message) {
-                    errorMessage = err.response.data.message;
-                } else if (err?.message) {
-                    errorMessage = err.message;
-                }
+        onError: async (...args) => {
+            const [error] = args;
+            const status = (error as { response?: { status?: number } })?.response?.status;
+            // 401 уже обработан interceptor'ом
+            if (status !== 401) {
+                toast.error(messages?.error ?? getErrorMessage(error), {
+                    description: messages?.error ? getErrorMessage(error, '') || undefined : undefined,
+                });
             }
-
-            if (!messages?.error) {
-                toast.error(errorMessage);
-            }
-
-            if (originalOnError) {
-                (originalOnError as any)(error, variables, context);
-            }
+            await queryOptions?.onError?.(...args);
         },
     });
 };

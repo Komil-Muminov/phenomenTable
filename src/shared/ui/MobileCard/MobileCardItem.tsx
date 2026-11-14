@@ -1,7 +1,9 @@
-import React from 'react';
-import { Checkbox } from 'antd';
-import { TableColumnsType } from 'antd';
-import { TableRowSelection } from 'antd/es/table/interface';
+import { Checkbox, type TableColumnsType } from 'antd';
+import React, { useMemo } from 'react';
+
+import { getValueByDataIndex } from '../lib/rowKey';
+
+import { columnId, splitMobileColumns, type MobileColumn } from './mobileColumns';
 
 interface MobileCardItemProps<RecordType> {
     record: RecordType;
@@ -10,180 +12,103 @@ interface MobileCardItemProps<RecordType> {
     primaryColumnKey?: string;
     hiddenInMobileColumns?: string[];
     handleRowClick?: (record: RecordType) => void;
-    rowSelection?: TableRowSelection<RecordType>;
+    /** undefined — выделение выключено */
+    isSelected?: boolean;
+    onToggleSelect?: (record: RecordType, checked: boolean) => void;
     renderMobileCard?: (record: RecordType, index: number) => React.ReactNode;
     rowClassName?: string;
 }
 
-export function MobileCardItem<RecordType extends Record<string, any>>(
-    props: MobileCardItemProps<RecordType>,
-) {
-    const {
-        record,
-        index,
-        columns,
-        primaryColumnKey,
-        hiddenInMobileColumns = [],
-        handleRowClick,
-        rowSelection,
-        renderMobileCard,
-        rowClassName,
-    } = props;
+const EMPTY = <span className="text-gray-400">—</span>;
 
-    // Кастомный рендер карточки, если передан пользователем
+export function MobileCardItem<RecordType>(props: MobileCardItemProps<RecordType>) {
+    const { record, index, columns, handleRowClick, isSelected, onToggleSelect, renderMobileCard, rowClassName } =
+        props;
+
+    const { primary, body, actions } = useMemo(
+        () => splitMobileColumns(columns, props.primaryColumnKey, props.hiddenInMobileColumns),
+        [columns, props.primaryColumnKey, props.hiddenInMobileColumns],
+    );
+
+    const clickable = handleRowClick ? 'cursor-pointer' : '';
+
     if (renderMobileCard) {
         return (
-            <div
-                onClick={() => handleRowClick?.(record)}
-                className={`w-full ${handleRowClick ? 'cursor-pointer' : ''}`}
-            >
+            <div onClick={() => handleRowClick?.(record)} className={`w-full ${clickable}`}>
                 {renderMobileCard(record, index)}
             </div>
         );
     }
 
-    const rowKey = record.id ?? record.key ?? index;
-    const isSelected = rowSelection?.selectedRowKeys?.includes(rowKey) ?? false;
-
-    // Разделяем колонки на:
-    // 1. Primary (заголовок карточки)
-    // 2. Action (действия/кнопки)
-    // 3. Body (остальные поля)
-    const isActionCol = (col: any) => {
-        const titleStr = typeof col.title === 'string' ? col.title.toLowerCase() : '';
-        const keyStr = String(col.key || col.dataIndex || '').toLowerCase();
-        return (
-            titleStr.includes('действие') ||
-            titleStr.includes('действия') ||
-            titleStr.includes('action') ||
-            keyStr.includes('action') ||
-            keyStr === 'operations'
-        );
+    const renderCellValue = (col: MobileColumn<RecordType>): React.ReactNode => {
+        const value = getValueByDataIndex(record, col.dataIndex);
+        if ('render' in col && col.render) return col.render(value, record, index) as React.ReactNode;
+        if (value === null || value === undefined || value === '') return EMPTY;
+        if (typeof value === 'boolean') return value ? 'Да' : 'Нет';
+        return String(value);
     };
 
-    const isPrimaryCol = (col: any) => {
-        if (primaryColumnKey) {
-            return col.key === primaryColumnKey || col.dataIndex === primaryColumnKey;
-        }
-        const keyStr = String(col.key || col.dataIndex || '').toLowerCase();
-        const titleStr = typeof col.title === 'string' ? col.title.toLowerCase() : '';
-        return (
-            keyStr === 'title' ||
-            keyStr === 'name' ||
-            keyStr === 'id' ||
-            titleStr === 'id' ||
-            titleStr.includes('название') ||
-            titleStr.includes('наименование') ||
-            titleStr.includes('номер')
-        );
-    };
-
-    const isHidden = (col: any) => {
-        const key = String(col.key || col.dataIndex || '');
-        return hiddenInMobileColumns.includes(key);
-    };
-
-    const validColumns = columns.filter((col) => !isHidden(col));
-
-    // Находим колонку заголовка
-    const primaryCol = validColumns.find(isPrimaryCol) || validColumns[0];
-    // Находим колонку действий
-    const actionCols = validColumns.filter(isActionCol);
-    // Обычные колонки тела карточки
-    const bodyCols = validColumns.filter((col) => col !== primaryCol && !isActionCol(col));
-
-    const renderCellValue = (col: any) => {
-        const val = col.dataIndex ? record[col.dataIndex] : undefined;
-        if (col.render) {
-            return col.render(val, record, index);
-        }
-        if (val === null || val === undefined || val === '') {
-            return <span className="text-gray-400">—</span>;
-        }
-        if (typeof val === 'boolean') {
-            return val ? 'Да' : 'Нет';
-        }
-        return String(val);
-    };
-
-    const handleCheckboxChange = (e: any) => {
-        e.stopPropagation();
-        if (!rowSelection?.onChange) return;
-
-        const currentKeys = (rowSelection.selectedRowKeys || []) as any[];
-        let newKeys: any[];
-        if (e.target.checked) {
-            newKeys = [...currentKeys, rowKey];
-        } else {
-            newKeys = currentKeys.filter((k) => k !== rowKey);
-        }
-
-        (rowSelection.onChange as any)(newKeys, [], { type: 'single' });
-    };
-
+    const labelOf = (col: MobileColumn<RecordType>) => (typeof col.title === 'string' ? col.title : columnId(col));
+    const selectable = isSelected !== undefined && Boolean(onToggleSelect);
+    const stop = (e: React.MouseEvent) => e.stopPropagation();
 
     return (
         <div
             onClick={() => handleRowClick?.(record)}
-            className={`bg-white rounded-xl border border-gray-100 p-4 shadow-sm transition-all duration-200 hover:shadow-md active:scale-[0.99] ${
+            className={`rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-shadow duration-200 hover:shadow-md ${
                 isSelected ? '!border-blue-500 !bg-blue-50/20 ring-1 ring-blue-500/20' : ''
-            } ${handleRowClick ? 'cursor-pointer' : ''} ${rowClassName || ''}`}
+            } ${clickable} ${rowClassName ?? ''}`}
         >
-            {/* Header карточки */}
-            <div className="flex items-start justify-between gap-3 border-b border-gray-100 pb-3 mb-3">
-                <div className="flex items-center gap-3 min-w-0">
-                    {rowSelection && (
-                        <div onClick={(e) => e.stopPropagation()} className="flex items-center">
+            {/* Шапка карточки */}
+            <div className="mb-3 flex items-start justify-between gap-3 border-b border-gray-100 pb-3">
+                <div className="flex min-w-0 items-center gap-3">
+                    {selectable && (
+                        <div onClick={stop} className="flex items-center">
                             <Checkbox
                                 checked={isSelected}
-                                onChange={handleCheckboxChange}
-                                className="scale-110"
+                                onChange={(e) => onToggleSelect?.(record, e.target.checked)}
+                                aria-label="Выбрать запись"
                             />
                         </div>
                     )}
-                    {primaryCol && (
+                    {primary && (
                         <div className="min-w-0">
-                            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider block">
-                                {typeof primaryCol.title === 'string' ? primaryCol.title : 'Запись'}
+                            <span className="block text-xs font-medium uppercase tracking-wider text-gray-500">
+                                {typeof primary.title === 'string' ? primary.title : 'Запись'}
                             </span>
-                            <div className="text-base font-semibold text-gray-900 truncate">
-                                {renderCellValue(primaryCol)}
+                            <div className="truncate text-base font-semibold text-gray-900">
+                                {renderCellValue(primary)}
                             </div>
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* Body карточки (Сетка ключ/значение) */}
-            {bodyCols.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-sm py-1">
-                    {bodyCols.map((col: any, colIdx: number) => {
-                        const colKey = col.key || col.dataIndex || colIdx;
-                        return (
-                            <div
-                                key={colKey}
-                                className="flex items-center justify-between gap-2 p-1.5 rounded-lg bg-gray-50/60"
-                            >
-                                <span className="text-xs text-gray-600 font-medium shrink-0">
-                                    {typeof col.title === 'string' ? col.title : colKey}:
-                                </span>
-                                <div className="text-xs sm:text-sm font-semibold text-gray-800 text-right truncate">
-                                    {renderCellValue(col)}
-                                </div>
+            {/* Тело: сетка «поле — значение» */}
+            {body.length > 0 && (
+                <div className="grid grid-cols-1 gap-2.5 py-1 text-sm sm:grid-cols-2">
+                    {body.map((col) => (
+                        <div
+                            key={columnId(col)}
+                            className="flex items-center justify-between gap-2 rounded-lg bg-gray-50/60 p-1.5"
+                        >
+                            <span className="shrink-0 text-xs font-medium text-gray-600">{labelOf(col)}:</span>
+                            <div className="truncate text-right text-xs font-semibold text-gray-800 sm:text-sm">
+                                {renderCellValue(col)}
                             </div>
-                        );
-                    })}
+                        </div>
+                    ))}
                 </div>
             )}
 
-            {/* Footer карточки (Действия) */}
-            {actionCols.length > 0 && (
+            {/* Подвал: действия */}
+            {actions.length > 0 && (
                 <div
-                    onClick={(e) => e.stopPropagation()}
-                    className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-end gap-2 flex-wrap"
+                    onClick={stop}
+                    className="mt-3 flex flex-wrap items-center justify-end gap-2 border-t border-gray-100 pt-3"
                 >
-                    {actionCols.map((col: any, actIdx: number) => (
-                        <div key={col.key || actIdx} className="w-full sm:w-auto">
+                    {actions.map((col) => (
+                        <div key={columnId(col)} className="w-full sm:w-auto">
                             {renderCellValue(col)}
                         </div>
                     ))}

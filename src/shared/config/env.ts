@@ -1,14 +1,17 @@
-export const getEnvVar = (key: string, defaultValue: string | number = '') => {
-    if (import.meta && import.meta.env[key] === undefined) {
-        console.error(`Env variable ${key} is required`);
+type EnvKey = keyof ImportMetaEnv;
+
+/** Читает переменную окружения; если её нет — предупреждает и отдаёт дефолт */
+export const getEnvVar = (key: EnvKey, defaultValue = ''): string => {
+    const value = import.meta.env[key];
+    if (value === undefined || value === '') {
+        console.warn(`[env] Переменная ${String(key)} не задана, использую "${defaultValue}"`);
         return defaultValue;
     }
-
-    return import.meta.env[key] || defaultValue;
+    return String(value);
 };
 
 export const ENV = {
-    IS_DEV: getEnvVar('VITE_MODE') === 'development',
-    IS_PROD: getEnvVar('VITE_MODE') === 'production',
+    IS_DEV: import.meta.env.DEV,
+    IS_PROD: import.meta.env.PROD,
     API_URL: getEnvVar('VITE_API_URL'),
 };

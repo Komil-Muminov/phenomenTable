@@ -1,60 +1,62 @@
-import { FC, useMemo } from 'react';
-import { Select, SelectProps, Spin } from 'antd';
-import { useQuery } from '@tanstack/react-query';
-import { _axios } from '@shared/config';
-import { tokenControl } from '@shared/config/tokenControl';
+import { useGetQuery } from '@shared/lib';
+import { Select, Spin, type SelectProps } from 'antd';
+import { useMemo } from 'react';
+
+type SelectOption = { label: string; value: string | number; [key: string]: unknown };
 
 interface ISmartSelectProps extends Omit<SelectProps, 'options' | 'loading'> {
     url?: string;
     method?: 'GET' | 'POST';
-    dataSource?: any[];
-    queryParams?: any;
-    transform?: (response: any) => Array<{ label: string; value: any; [key: string]: any }>;
+    dataSource?: unknown[];
+    queryParams?: Record<string, unknown>;
+    /** Своё преобразование ответа в опции */
+    transform?: (response: unknown) => SelectOption[];
 }
 
-export const SmartSelect: FC<ISmartSelectProps> = (props) => {
+// Ответ может быть массивом или обёрткой { data } / { items }
+const extractItems = (raw: unknown): Record<string, unknown>[] => {
+    if (Array.isArray(raw)) return raw;
+    const wrapper = raw as { data?: unknown; items?: unknown } | null;
+    const items = wrapper?.data ?? wrapper?.items;
+    return Array.isArray(items) ? items : [];
+};
+
+const toOption = (item: Record<string, unknown>): SelectOption | null => {
+    const value = item.id ?? item.value;
+    if (typeof value !== 'string' && typeof value !== 'number') return null;
+    const label = item.name ?? item.label ?? item.title ?? value;
+    return { ...item, label: String(label), value };
+};
+
+/** Select, который сам грузит опции по url (или берёт из dataSource) */
+export const SmartSelect = (props: ISmartSelectProps) => {
     const {
         url,
         method = 'GET',
         dataSource,
         queryParams,
+        transform,
         placeholder = 'Выберите значение',
         allowClear = true,
         showSearch = true,
         ...selectProps
     } = props;
 
-    // Загрузка данных (только если нет dataSource)
-    const { data: apiData, isLoading } = useQuery({
-        queryKey: [url, method, queryParams],
-        queryFn: async () => {
-            const token = tokenControl.get();
-            const response = await _axios({
-                url,
-                method,
-                [method === 'POST' ? 'data' : 'params']: queryParams,
-                headers: { Authorization: token ? `Bearer ${token}` : undefined },
-            });
-            return response.data;
-        },
-        enabled: !dataSource && !!url,
+    const { data: apiData, isLoading } = useGetQuery<Record<string, unknown> | undefined, unknown>({
+        url: url ?? '',
+        method,
+        params: queryParams,
+        options: { enabled: !dataSource && Boolean(url) },
     });
 
-    // Определяем источник данных
-    const rawData = dataSource || apiData;
-
-    // Трансформируем в options
     const options = useMemo(() => {
-        if (!rawData) return [];
-
-        const items = Array.isArray(rawData) ? rawData : rawData?.data || rawData?.items || [];
-
-        return items.map((item: any) => ({
-            label: item.name || item.label || item.title || String(item.id),
-            value: item.id || item.value,
-            ...item,
-        }));
-    }, [rawData]);
+        const raw = dataSource ?? apiData;
+        if (!raw) return [];
+        if (transform) return transform(raw);
+        return extractItems(raw)
+            .map(toOption)
+            .filter((option): option is SelectOption => option !== null);
+    }, [dataSource, apiData, transform]);
 
     return (
         <Select
@@ -63,7 +65,7 @@ export const SmartSelect: FC<ISmartSelectProps> = (props) => {
             loading={isLoading}
             allowClear={allowClear}
             showSearch={showSearch}
-            filterOption={(input, option: any) => option?.label?.toLowerCase().includes(input.toLowerCase())}
+            optionFilterProp="label"
             notFoundContent={isLoading ? <Spin size="small" /> : 'Нет данных'}
             {...selectProps}
         />

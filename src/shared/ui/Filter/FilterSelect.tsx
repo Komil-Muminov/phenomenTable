@@ -1,7 +1,8 @@
-import { FC, useEffect, useState } from 'react';
+import { useDynamicSearchParams } from '@shared/lib';
 import { Select } from 'antd';
-import { useDynamicSearchParams, useDebouncedCallback } from '@shared/lib';
-import { IFilterItem } from '@shared/model';
+import { FC, useMemo } from 'react';
+
+import type { IFilterItem, ISelectOption } from '@shared/model';
 
 interface IProps {
     config: IFilterItem;
@@ -10,40 +11,24 @@ interface IProps {
 
 export const FilterSelect: FC<IProps> = ({ config, customClass }) => {
     const { params, setParams } = useDynamicSearchParams();
-    const [value, setValue] = useState<string | number | undefined>(undefined);
-    const { placeholder, name, options = [], transform } = config;
+    const { placeholder, name, options = [] } = config;
 
-    const debouncedChange = useDebouncedCallback((value: string | number) => {
-        setParams(name, value);
-    }, 400);
+    // Значение берём прямо из URL и сопоставляем с опцией — так сохраняется исходный тип value
+    const urlValue = params[name];
+    const value = useMemo(
+        () => options.find((option) => String(option.value) === urlValue)?.value,
+        [options, urlValue],
+    );
 
-    const handleChange = (selectedValue: string | number) => {
-        if (selectedValue === undefined || selectedValue === null || selectedValue === '') {
-            setValue(undefined);
-            debouncedChange('');
-            return;
-        }
-        setValue(selectedValue);
-        debouncedChange(selectedValue);
-    };
-
-    useEffect(() => {
-        const paramValue = params[name];
-        if (paramValue !== undefined && paramValue !== '') {
-            // Преобразуем в number если это число
-            const normalizedValue =
-                typeof paramValue === 'string' && !isNaN(Number(paramValue)) ? Number(paramValue) : paramValue;
-            setValue(normalizedValue);
-        } else {
-            setValue(undefined);
-        }
-    }, [params[name], name]);
+    // Выбор в селекте — дискретное действие, debounce не нужен
+    const handleChange = (selected?: ISelectOption['value']) =>
+        setParams(name, selected === undefined ? '' : String(selected));
 
     return (
         <Select
             placeholder={placeholder}
             options={options}
-            value={value}
+            value={value as string | number | undefined}
             onChange={handleChange}
             allowClear
             className={customClass}

@@ -1,253 +1,68 @@
-import React, { useState } from 'react';
-import { Button, Dropdown, MenuProps, Popconfirm, Space, Tooltip } from 'antd';
-import { Edit3, Eye, MoreHorizontal, Trash2 } from 'lucide-react';
-import { TableActionItem, TableActionsProps } from './types';
+import { Space } from 'antd';
+import { useMemo } from 'react';
 
-export function TableActions<RecordType extends Record<string, any> = any>({
+import { ActionButton } from './ActionButton';
+import { ActionsDropdown } from './ActionsDropdown';
+import { buildActions, DEFAULT_DELETE_CONFIRM, resolveActions } from './buildActions';
+import { useActionRunner } from './useActionRunner';
+
+import type { TableActionsProps } from './types';
+
+/** Блок действий строки: кнопки в ряд, лишнее уезжает в меню «⋯» */
+export function TableActions<RecordType>({
     record,
-    actions = [],
+    actions,
     onView,
     onEdit,
     onDelete,
-    deleteConfirm = {
-        title: 'Удалить эту запись?',
-        description: 'Это действие невозможно будет отменить.',
-        okText: 'Да, удалить',
-        cancelText: 'Отмена',
-        okType: 'danger',
-    },
+    deleteConfirm = DEFAULT_DELETE_CONFIRM,
     mode = 'auto',
     maxVisibleButtons = 3,
     size = 'small',
     className = '',
     style,
 }: TableActionsProps<RecordType>) {
-    // Хранение состояния loading для каждого действия по ключу/индексу
-    const [loadingKeys, setLoadingKeys] = useState<Record<string, boolean>>({});
+    const { run, isLoading } = useActionRunner(record);
 
-    // Формируем объединенный список действий
-    const combinedActions: TableActionItem<RecordType>[] = [];
+    const items = useMemo(
+        () => resolveActions(buildActions({ actions, onView, onEdit, onDelete, deleteConfirm }), record),
+        [actions, onView, onEdit, onDelete, deleteConfirm, record],
+    );
 
-    if (onView) {
-        combinedActions.push({
-            key: 'preset-view',
-            label: 'Просмотр',
-            icon: <Eye className="w-3.5 h-3.5" />,
-            type: 'text',
-            onClick: onView,
-        });
-    }
+    if (items.length === 0) return null;
 
-    if (onEdit) {
-        combinedActions.push({
-            key: 'preset-edit',
-            label: 'Редактировать',
-            icon: <Edit3 className="w-3.5 h-3.5" />,
-            type: 'text',
-            onClick: onEdit,
-        });
-    }
+    // Сколько кнопок показать в ряд (одно место уходит под «⋯»)
+    const safeMax = Math.max(1, Math.floor(maxVisibleButtons) || 1);
+    const directCount =
+        mode === 'dropdown' ? 0 : mode === 'buttons' || items.length <= safeMax ? items.length : safeMax - 1;
 
-    if (actions && actions.length > 0) {
-        combinedActions.push(...actions);
-    }
-
-    if (onDelete) {
-        combinedActions.push({
-            key: 'preset-delete',
-            label: 'Удалить',
-            icon: <Trash2 className="w-3.5 h-3.5" />,
-            danger: true,
-            type: 'text',
-            confirm: deleteConfirm,
-            onClick: onDelete,
-        });
-    }
-
-    // Фильтруем скрытые действия
-    const visibleActions = combinedActions.filter((action) => {
-        if (typeof action.hidden === 'function') {
-            return !action.hidden(record);
-        }
-        return !action.hidden;
-    });
-
-    if (visibleActions.length === 0) {
-        return null;
-    }
-
-    const executeAction = async (action: TableActionItem<RecordType>, key: string, e?: React.MouseEvent) => {
-        if (e) {
-            e.stopPropagation();
-        }
-        if (!action.onClick) return;
-
-        try {
-            const result = action.onClick(record, e);
-            if (result && typeof result.then === 'function') {
-                setLoadingKeys((prev) => ({ ...prev, [key]: true }));
-                await result;
-            }
-        } finally {
-            setLoadingKeys((prev) => ({ ...prev, [key]: false }));
-        }
-    };
-
-    // Определение кнопок и элементов для dropdown
-    const renderActionBtn = (action: TableActionItem<RecordType>, index: number) => {
-        const actionKey = action.key || `action-${index}`;
-        const isDisabled = typeof action.disabled === 'function' ? action.disabled(record) : !!action.disabled;
-        const isLoading = !!loadingKeys[actionKey];
-
-        const confirmConfig =
-            typeof action.confirm === 'function' ? action.confirm(record) : action.confirm;
-
-        const buttonElement = (
-            <Button
-                key={actionKey}
-                size={size}
-                type={action.type || 'text'}
-                danger={action.danger}
-                disabled={isDisabled}
-                loading={isLoading}
-                icon={action.icon}
-                className="flex items-center gap-1 text-xs"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    if (!confirmConfig) {
-                        executeAction(action, actionKey, e);
-                    }
-                }}
-            >
-                {action.label}
-            </Button>
-        );
-
-        const tooltipContent =
-            typeof action.tooltip === 'function' ? action.tooltip(record) : action.tooltip;
-
-        const wrappedWithTooltip = tooltipContent ? (
-            <Tooltip key={`tooltip-${actionKey}`} title={tooltipContent}>
-                {buttonElement}
-            </Tooltip>
-        ) : (
-            buttonElement
-        );
-
-        if (confirmConfig) {
-            return (
-                <Popconfirm
-                    key={`confirm-${actionKey}`}
-                    title={confirmConfig.title}
-                    description={confirmConfig.description}
-                    okText={confirmConfig.okText || 'Да'}
-                    cancelText={confirmConfig.cancelText || 'Отмена'}
-                    okButtonProps={{ danger: confirmConfig.okType === 'danger' }}
-                    placement={confirmConfig.placement || 'topRight'}
-                    onConfirm={(e) => {
-                        e?.stopPropagation();
-                        executeAction(action, actionKey);
-                    }}
-                    onCancel={(e) => e?.stopPropagation()}
-                >
-                    <span onClick={(e) => e.stopPropagation()}>{wrappedWithTooltip}</span>
-                </Popconfirm>
-            );
-        }
-
-        return wrappedWithTooltip;
-    };
-
-    const isDropdownOnly = mode === 'dropdown';
-    const isAutoWithOverflow =
-        mode === 'auto' && visibleActions.length > maxVisibleButtons;
-
-    if (isDropdownOnly || isAutoWithOverflow) {
-        const directButtonsCount = isDropdownOnly ? 0 : maxVisibleButtons - 1;
-        const directButtons = visibleActions.slice(0, directButtonsCount);
-        const dropdownItems = visibleActions.slice(directButtonsCount);
-
-        const menuItems: MenuProps['items'] = dropdownItems.map((action, index) => {
-            const actionKey = action.key || `dropdown-action-${index}`;
-            const isDisabled =
-                typeof action.disabled === 'function'
-                    ? action.disabled(record)
-                    : !!action.disabled;
-            const confirmConfig =
-                typeof action.confirm === 'function'
-                    ? action.confirm(record)
-                    : action.confirm;
-
-            return {
-                key: actionKey,
-                label: confirmConfig ? (
-                    <Popconfirm
-                        title={confirmConfig.title}
-                        description={confirmConfig.description}
-                        okText={confirmConfig.okText || 'Да'}
-                        cancelText={confirmConfig.cancelText || 'Отмена'}
-                        okButtonProps={{ danger: confirmConfig.okType === 'danger' }}
-                        placement={confirmConfig.placement || 'topRight'}
-                        onConfirm={(e) => {
-                            e?.stopPropagation();
-                            executeAction(action, actionKey);
-                        }}
-                        onCancel={(e) => e?.stopPropagation()}
-                    >
-                        <div
-                            className="w-full"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            {action.label}
-                        </div>
-                    </Popconfirm>
-                ) : (
-                    <span>{action.label}</span>
-                ),
-                icon: action.icon,
-                danger: action.danger,
-                disabled: isDisabled,
-                onClick: (info) => {
-                    info.domEvent.stopPropagation();
-                    if (!confirmConfig) {
-                        executeAction(action, actionKey);
-                    }
-                },
-            };
-        });
-
-        return (
-            <div
-                className={`flex items-center gap-1.5 ${className}`}
-                style={style}
-                onClick={(e) => e.stopPropagation()}
-            >
-                <Space size={4}>
-                    {directButtons.map((action, idx) => renderActionBtn(action, idx))}
-                    {dropdownItems.length > 0 && (
-                        <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight">
-                            <Button
-                                size={size}
-                                type="text"
-                                icon={<MoreHorizontal className="w-4 h-4 text-gray-500" />}
-                                className="flex items-center justify-center p-1"
-                                onClick={(e) => e.stopPropagation()}
-                            />
-                        </Dropdown>
-                    )}
-                </Space>
-            </div>
-        );
-    }
+    const direct = items.slice(0, directCount);
+    const overflow = items.slice(directCount);
 
     return (
         <div
             className={`flex items-center gap-1.5 ${className}`}
             style={style}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
         >
             <Space size={4}>
-                {visibleActions.map((action, idx) => renderActionBtn(action, idx))}
+                {direct.map((item) => (
+                    <ActionButton<RecordType>
+                        key={item.key}
+                        item={item}
+                        size={size}
+                        loading={isLoading(item.key)}
+                        onRun={(event) => void run(item.action, item.key, event)}
+                    />
+                ))}
+                {overflow.length > 0 && (
+                    <ActionsDropdown<RecordType>
+                        items={overflow}
+                        size={size}
+                        isLoading={isLoading}
+                        onRun={(item) => run(item.action, item.key)}
+                    />
+                )}
             </Space>
         </div>
     );

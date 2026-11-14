@@ -1,15 +1,18 @@
-import { Button, Space } from 'antd';
-import { DownloadOutlined, ClearOutlined } from '@ant-design/icons';
+import { ClearOutlined, DownloadOutlined } from '@ant-design/icons';
+import { FilterType, type IFilterItem } from '@shared/model';
+import { Button } from 'antd';
+
+import { FilterDate } from './FilterDate';
 import { FilterInput } from './FilterInput';
 import { FilterSelect } from './FilterSelect';
-import { FilterDate } from './FilterDate';
-import { IFilterItem } from '@shared/model';
+
+import type { ReactNode } from 'react';
 
 interface FiltersContainerProps {
     filters: IFilterItem[];
     searchMode?: boolean;
     searchButtonText?: string;
-    searchButtonIcon?: React.ReactNode;
+    searchButtonIcon?: ReactNode;
     onApplyFilters: () => void;
     onResetFilters: () => void;
     isLoading?: boolean;
@@ -35,20 +38,20 @@ export const FiltersContainer = (props: FiltersContainerProps) => {
     const renderFilter = (filter: IFilterItem) => {
         const key = filter.name;
         switch (filter.type) {
-            case 'input':
+            case FilterType.INPUT:
                 return (
                     <div key={key} className="!w-full sm:!w-48">
                         <FilterInput config={filter} customClass="!w-full" />
                     </div>
                 );
-            case 'select':
+            case FilterType.SELECT:
                 return (
                     <div key={key} className="!w-full sm:!w-48">
                         <FilterSelect config={filter} customClass="!w-full" />
                     </div>
                 );
-            case 'date':
-            case 'date-range':
+            case FilterType.DATE:
+            case FilterType.DATE_RANGE:
                 return (
                     <div key={key} className="!w-full sm:!w-48">
                         <FilterDate config={filter} customClass="!w-full" />
@@ -105,14 +108,4 @@ export const FiltersContainer = (props: FiltersContainerProps) => {
             </div>
         </div>
     );
-};
-
-export const useFilterValues = (searchParams: Record<string, any>, filters: IFilterItem[]) => {
-    return filters.reduce((acc, filter) => {
-        const value = searchParams[filter.name];
-        if (value !== undefined && value !== '') {
-            acc[filter.name] = value;
-        }
-        return acc;
-    }, {} as Record<string, any>);
 };

@@ -1,50 +1,44 @@
-// src/shared/SmartTable/model.ts
+import type { InputProps, TableColumnsType, TableProps } from 'antd';
+import type { TableRowSelection } from 'antd/es/table/interface';
+import type { Key, ReactNode } from 'react';
 
-import { InputProps, TableColumnsType, TableProps } from 'antd';
-import { TableRowSelection } from 'antd/es/table/interface';
-import React from 'react';
+// --- Общие типы API ---
 
-// --- Общие типы для API ---
 export interface IApiResponse<RecordType> {
     items: RecordType[];
     total: number;
     totalSum?: string | number;
 }
 
-// --- Типы для фильтров ---
+// --- Фильтры ---
 
 export enum FilterType {
     INPUT = 'input',
     SELECT = 'select',
     DATE = 'date',
     DATE_RANGE = 'date-range',
-    BUTTON = 'button',
 }
 
 export interface ISelectOption {
     label: string;
-    value: any;
+    value: string | number;
     disabled?: boolean;
 }
 
 export interface IFilterItem {
     type: FilterType;
+    /** Имя параметра. Для DATE_RANGE в URL пишутся `${name}From` и `${name}To` */
     name: string;
     label?: string;
+    placeholder?: string;
     options?: ISelectOption[];
     inputProps?: Partial<InputProps>;
-    /** Функция для преобразования значения фильтра перед отправкой на сервер. */
-    transform?: (value: any, options?: ISelectOption[]) => any;
-    /** Функция для форматирования значения из URL для отображения в компоненте фильтра. */
-    formatValue?: (value: any) => any;
-    // Для кнопочных фильтров
-    text?: string;
-    onClick?: () => void;
-    loading?: boolean;
-    placeholder?: string;
+    /** Преобразование значения перед отправкой на сервер */
+    transform?: (value: string, options?: ISelectOption[]) => unknown;
 }
 
-// --- Типы для скачивания ---
+// --- Скачивание ---
+
 export interface IDownloadButton {
     url: string;
     fileName?: string;
@@ -54,43 +48,69 @@ export interface IDownloadButton {
     };
 }
 
-// --- Типы для главного компонента SmartTable ---
+// --- SmartTable ---
 
-export interface IProps<RecordType, ResponseType> {
+export type RowKeyGetter<RecordType> = string | ((record: RecordType) => Key);
+
+export interface SmartTableProps<RecordType, ResponseType = IApiResponse<RecordType>> {
+    // Данные
     url?: string;
-    filters?: IFilterItem[];
-    columns: TableColumnsType<RecordType>;
-    queryParams?: Record<string, any>;
+    /** Статические данные. Если заданы — запрос по url не делается, пагинация локальная */
+    dataSource?: RecordType[];
+    queryParams?: Record<string, unknown>;
     getItemsFromResponse?: (response: ResponseType) => RecordType[];
-    handleRowClick?: (row: RecordType) => void;
-    dataSource?: RecordType[]; // Статический источник данных
-    rowSelection?: TableRowSelection<RecordType>;
+    getTotalFromResponse?: (response: ResponseType) => number;
+    requestTransform?: (params: Record<string, unknown>) => unknown;
+    responseTransform?: (response: unknown) => ResponseType;
+    /** Фильтрация статического dataSource по текущим (уже трансформированным) фильтрам */
+    localFilter?: (record: RecordType, filters: Record<string, unknown>) => boolean;
+    /** Префикс URL-параметров — нужен, если на странице несколько таблиц */
+    paramsScope?: string;
+
+    // Колонки и строки
+    columns: TableColumnsType<RecordType>;
+    rowKey?: RowKeyGetter<RecordType>;
     idColumnHidden?: boolean;
-    customRender?: (items: RecordType[], total: number) => React.ReactNode;
-    hideFilters?: boolean;
-    hiddenPagination?: boolean;
-    isBgChanged?: boolean;
-    searchButton?: boolean;
-    searchButtonText?: string;
-    searchButtonIcon?: React.ReactNode;
-    disableScrollX?: boolean;
-    downloadButton?: IDownloadButton;
-    extraDownloadPayload?: object;
-    showDownloadBtn?: boolean;
-    totalCount?: number;
-    totalSum?: string | number | boolean;
-    totalInfoRender?: (data: ResponseType) => React.ReactNode;
-    // Стили и прочее
-    className?: string;
-    style?: string;
-    title?: string;
     rowClassName?: (record: RecordType, index: number) => string;
     expandable?: TableProps<RecordType>['expandable'];
-    // Мобильный вид (Card / List View)
+    handleRowClick?: (row: RecordType) => void;
+
+    // Выделение: свой rowSelection или встроенный через handleSelectionChange
+    rowSelection?: TableRowSelection<RecordType>;
+    handleSelectionChange?: (keys: Key[], rows: RecordType[]) => void;
+
+    // Фильтры
+    filters?: IFilterItem[];
+    hideFilters?: boolean;
+    /** Режим «по кнопке»: фильтры применяются только по клику на «Поиск» */
+    searchButton?: boolean;
+    searchButtonText?: string;
+    searchButtonIcon?: ReactNode;
+
+    // Скачивание
+    downloadButton?: IDownloadButton;
+    downloadPayload?: object;
+    showDownloadBtn?: boolean;
+
+    // Вид
+    title?: string;
+    className?: string;
+    /** Доп. классы для шапки с фильтрами */
+    style?: string;
+    hiddenPagination?: boolean;
+    disableScrollX?: boolean;
+    virtual?: boolean;
+    customRender?: (items: RecordType[], total: number) => ReactNode;
+
+    // Модалка просмотра
+    enableViewModal?: boolean;
+    viewModalTitle?: string;
+    viewModalColumns?: TableColumnsType<RecordType>;
+
+    // Мобильный вид (карточки)
     enableMobileCards?: boolean;
     mobileBreakpoint?: number;
     primaryColumnKey?: string;
     hiddenInMobileColumns?: string[];
-    renderMobileCard?: (record: RecordType, index: number) => React.ReactNode;
+    renderMobileCard?: (record: RecordType, index: number) => ReactNode;
 }
-

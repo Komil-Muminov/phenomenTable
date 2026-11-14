@@ -1,5 +1,5 @@
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useCallback, useMemo, useRef } from 'react';
 
 type ValueType = string | number | boolean | null | undefined;
 
@@ -12,98 +12,102 @@ interface UseDynamicSearchParamsReturn {
 }
 
 /**
- * Оптимизированный хук для работы с URL параметрами
- * - Батчинг обновлений (избегает множественных навигаций)
- * - Мемоизация парсинга
- * - Стабильные ссылки на функции
+ * Скоуп URL-параметров. Внутри провайдера все ключи пишутся как `${scope}-${key}`,
+ * поэтому две таблицы на одной странице не перетирают друг другу фильтры и пагинацию.
  */
-export const useDynamicSearchParams = (scope?: string): UseDynamicSearchParamsReturn => {
+export const SearchParamsScopeContext = createContext<string | undefined>(undefined);
+
+const isEmptyValue = (value: ValueType) => value === null || value === undefined || value === '';
+
+/**
+ * Хук для работы с URL-параметрами:
+ * - батчинг: все изменения за тик применяются одной навигацией
+ * - replace вместо push: фильтры не засоряют историю браузера
+ * - поддержка скоупа (аргумент или SearchParamsScopeContext)
+ */
+export const useDynamicSearchParams = (scopeArg?: string): UseDynamicSearchParamsReturn => {
+    const contextScope = useContext(SearchParamsScopeContext);
+    const scope = scopeArg ?? contextScope;
+    const prefix = scope ? `${scope}-` : '';
+
     const [searchParams, setSearchParams] = useSearchParams();
     const batchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const pendingUpdatesRef = useRef<Record<string, ValueType>>({});
+    // setSearchParams в react-router меняется при каждой смене URL — держим в ref ради стабильных колбэков
+    const setSearchParamsRef = useRef(setSearchParams);
+    setSearchParamsRef.current = setSearchParams;
 
-    // Мемоизируем парсинг params в объект
+    // Отдаём наружу только свои ключи и без префикса
     const params = useMemo(() => {
-        let paramsObject: Record<string, string> = Object.fromEntries([...searchParams]);
-
-        if (scope) {
-            paramsObject = Object.fromEntries(
-                Object.keys(paramsObject)?.map((key) => [key.replace(/^.*?-/, ''), paramsObject[key]]),
-            );
-        }
-
-        return paramsObject;
-    }, [searchParams, scope]);
+        const result: Record<string, string> = {};
+        searchParams.forEach((value, key) => {
+            if (!prefix) result[key] = value;
+            else if (key.startsWith(prefix)) result[key.slice(prefix.length)] = value;
+        });
+        return result;
+    }, [searchParams, prefix]);
 
     const paramsString = useMemo(() => searchParams.toString(), [searchParams]);
 
-    // Батчинг обновлений - применяем все изменения одним вызовом
     const flushPendingUpdates = useCallback(() => {
-        if (Object.keys(pendingUpdatesRef.current).length === 0) return;
-
-        const updates = { ...pendingUpdatesRef.current };
+        batchTimeoutRef.current = null;
+        const updates = pendingUpdatesRef.current;
+        if (Object.keys(updates).length === 0) return;
         pendingUpdatesRef.current = {};
 
-        setSearchParams((prev) => {
-            const newParams = new URLSearchParams(prev);
+        // Берём актуальный URL, а не снимок из рендера: несколько инстансов хука
+        // могут флашиться подряд до перерисовки и не должны затирать друг друга
+        setSearchParamsRef.current(
+            () => {
+                const next = new URLSearchParams(window.location.search);
+                Object.entries(updates).forEach(([key, value]) => {
+                    if (isEmptyValue(value)) next.delete(key);
+                    else next.set(key, String(value));
+                });
+                return next;
+            },
+            { replace: true },
+        );
+    }, []);
 
-            Object.entries(updates).forEach(([key, value]) => {
-                if (value !== null && value !== undefined && value !== '') {
-                    newParams.set(key, String(value));
-                } else {
-                    newParams.delete(key);
-                }
-            });
-
-            return newParams;
-        });
-    }, [setSearchParams]);
-
-    // Batch update с debounce
-    const batchSetParams = useCallback(
-        (updates: Record<string, ValueType>) => {
-            Object.assign(pendingUpdatesRef.current, updates);
-
+    // Не оставляем висящий таймер после размонтирования, но изменения применяем
+    useEffect(
+        () => () => {
             if (batchTimeoutRef.current) {
                 clearTimeout(batchTimeoutRef.current);
+                flushPendingUpdates();
             }
-
-            batchTimeoutRef.current = setTimeout(flushPendingUpdates, 0);
         },
         [flushPendingUpdates],
     );
 
-    // Установка одного или нескольких параметров
+    const batchSetParams = useCallback(
+        (updates: Record<string, ValueType>) => {
+            Object.entries(updates).forEach(([key, value]) => {
+                if (!key) return;
+                pendingUpdatesRef.current[`${prefix}${key}`] = value;
+            });
+
+            if (batchTimeoutRef.current) clearTimeout(batchTimeoutRef.current);
+            batchTimeoutRef.current = setTimeout(flushPendingUpdates, 0);
+        },
+        [flushPendingUpdates, prefix],
+    );
+
     const setParams = useCallback(
         (key: string | Record<string, ValueType>, value?: ValueType) => {
-            if (typeof key === 'string') {
-                batchSetParams({ [key]: value });
-            } else {
-                batchSetParams(key);
-            }
+            batchSetParams(typeof key === 'string' ? { [key]: value } : key);
         },
         [batchSetParams],
     );
 
-    // Удаление параметров
     const deleteParams = useCallback(
         (keys: string | string[]) => {
             const keysArray = Array.isArray(keys) ? keys : [keys];
-            const updates = keysArray.reduce((acc, key) => {
-                acc[key] = null;
-                return acc;
-            }, {} as Record<string, null>);
-
-            batchSetParams(updates);
+            batchSetParams(Object.fromEntries(keysArray.map((key) => [key, null])));
         },
         [batchSetParams],
     );
 
-    return {
-        paramsString,
-        params,
-        setParams,
-        deleteParams,
-        batchSetParams,
-    };
+    return { paramsString, params, setParams, deleteParams, batchSetParams };
 };

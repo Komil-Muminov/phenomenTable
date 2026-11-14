@@ -1,74 +1,32 @@
-import { TableColumnsType, TableProps } from 'antd';
-import { TableRowSelection } from 'antd/es/table/interface';
-import { useTableDownload } from '@shared/lib/hooks/hooks';
-import { TableContent } from './TableContent';
+import { SearchParamsScopeContext, useTableDownload } from '@shared/lib';
+import { withDateFormatting } from '@shared/utils';
+import { useCallback, useMemo, useState } from 'react';
+
 import { useSmartTable, useTableSelection } from './lib';
-import { IFilterItem } from '@shared/model';
-import React, { useState } from 'react';
+import { TableContent } from './TableContent';
 import { ViewModal } from './ViewModal';
-import { ViewModalColumn } from './ViewModal'; 
 
-interface IDownloadButton {
-    url: string;
-    fileName?: string;
-    messages?: { success?: string; error?: string };
+import type { SmartTableProps } from '@shared/model';
+
+/**
+ * Таблица «под ключ»: загрузка, фильтры в URL, пагинация, выделение,
+ * скачивание отчёта, модалка просмотра и мобильные карточки.
+ */
+export function SmartTable<RecordType = Record<string, unknown>, ResponseType = unknown>(
+    props: SmartTableProps<RecordType, ResponseType>,
+) {
+    // Скоуп оборачивает всё дерево — фильтры внутри тоже пишут в свои ключи
+    return (
+        <SearchParamsScopeContext.Provider value={props.paramsScope}>
+            <SmartTableInner {...props} />
+        </SearchParamsScopeContext.Provider>
+    );
 }
 
-interface OfflineConfig {
-    enabled: boolean;
-    storeName: string;
-}
+function SmartTableInner<RecordType, ResponseType>(props: SmartTableProps<RecordType, ResponseType>) {
+    const { columns, rowKey = 'id', downloadButton, downloadPayload, enableViewModal = false, handleRowClick } = props;
 
-interface IProps<RecordType, ResponseType> {
-    url?: string;
-    filters?: IFilterItem[];
-    columns: TableColumnsType<RecordType>;
-    queryParams?: Record<string, any>;
-    style?: string;
-    getItemsFromResponse?: (response: ResponseType) => RecordType[];
-    handleRowClick?: (row: RecordType) => void;
-    handleSelectionChange?: any;
-    dataSource?: RecordType[];
-    rowClassName?: (record: RecordType, index: number) => string;
-    title?: string;
-    rowSelection?: TableRowSelection<RecordType>;
-    idColumnHidden?: boolean;
-    customRender?: (items: RecordType[], total: number) => React.ReactNode;
-    hideFilters?: boolean;
-    className?: string;
-    totalSum?: string | number | boolean;
-    hiddenPagination?: boolean;
-    searchButton?: boolean;
-    searchButtonText?: string;
-    searchButtonIcon?: React.ReactNode;
-    expandable?: TableProps<RecordType>['expandable'];
-    disableScrollX?: boolean;
-    virtual?: boolean;
-    downloadButton?: IDownloadButton;
-    downloadPayload?: object;
-    showDownloadBtn?: boolean;
-    totalCount?: boolean;
-    requestTransform?: (params: any) => any;
-    responseTransform?: (response: any) => ResponseType;
-    offlineMode?: OfflineConfig;
-    enableViewModal?: boolean;
-    viewModalTitle?: string;
-    viewModalColumns?: TableColumnsType<RecordType>;
-    // Мобильный вид (Card / List View)
-    enableMobileCards?: boolean;
-    mobileBreakpoint?: number;
-    primaryColumnKey?: string;
-    hiddenInMobileColumns?: string[];
-    renderMobileCard?: (record: RecordType, index: number) => React.ReactNode;
-}
-
-
-export function SmartTable<RecordType = any, ResponseType = any>(props: IProps<RecordType, ResponseType>) {
-    const { downloadButton, downloadPayload, virtual = false, enableViewModal = false } = props;
-
-    // State для модалки
     const [selectedRow, setSelectedRow] = useState<RecordType | null>(null);
-    const [modalVisible, setModalVisible] = useState(false);
 
     const tableLogic = useSmartTable<RecordType, ResponseType>({
         url: props.url,
@@ -76,41 +34,46 @@ export function SmartTable<RecordType = any, ResponseType = any>(props: IProps<R
         filters: props.filters,
         dataSource: props.dataSource,
         getItemsFromResponse: props.getItemsFromResponse,
+        getTotalFromResponse: props.getTotalFromResponse,
         searchButton: props.searchButton,
+        localFilter: props.localFilter,
         requestTransform: props.requestTransform,
         responseTransform: props.responseTransform,
     });
 
-    const selection = useTableSelection<any>({
+    // Встроенное выделение включается, только если о нём попросили
+    const selection = useTableSelection<RecordType>({
         data: tableLogic.tableData,
-        rowKey: 'id',
+        rowKey,
         onSelectionChange: props.handleSelectionChange,
     });
+    const builtInSelection = props.handleSelectionChange ? selection : undefined;
 
     const { handleDownload, downloadPending } = useTableDownload({ downloadButton });
+    const { transformedFilters } = tableLogic;
 
-    const handleDownloadClick = () => {
-        handleDownload(tableLogic.transformedFilters, downloadPayload);
-    };
+    const onDownload = useCallback(
+        () => handleDownload(transformedFilters, downloadPayload),
+        [handleDownload, transformedFilters, downloadPayload],
+    );
 
-    const handlePageChange = (page: number, pageSize: number) => {
-        tableLogic.setParams('pageNumber', page);
-        tableLogic.setParams('pageSize', pageSize);
-    };
+    // Даты форматируем только при отображении — в обработчики идут исходные данные
+    const displayColumns = useMemo(() => withDateFormatting(columns), [columns]);
+    const modalColumns = useMemo(
+        () => (props.viewModalColumns ? withDateFormatting(props.viewModalColumns) : displayColumns),
+        [props.viewModalColumns, displayColumns],
+    );
 
-    // Обработчик клика на строку
-    const handleRowClickInternal = (row: RecordType) => {
-        if (enableViewModal) {
-            setSelectedRow(row);
-            setModalVisible(true);
-        }
-        props.handleRowClick?.(row);
-    };
+    const onRowClick = useCallback(
+        (row: RecordType) => {
+            if (enableViewModal) setSelectedRow(row);
+            handleRowClick?.(row);
+        },
+        [enableViewModal, handleRowClick],
+    );
+    const hasRowClick = enableViewModal || Boolean(handleRowClick);
 
-    const handleCloseModal = () => {
-        setModalVisible(false);
-        setSelectedRow(null);
-    };
+    const closeModal = useCallback(() => setSelectedRow(null), []);
 
     return (
         <>
@@ -118,54 +81,53 @@ export function SmartTable<RecordType = any, ResponseType = any>(props: IProps<R
                 {props.customRender ? (
                     props.customRender(tableLogic.tableData, tableLogic.total)
                 ) : (
-                    <TableContent
-                        virtual={virtual}
+                    <TableContent<RecordType>
                         tableData={tableLogic.tableData}
-                        columns={props.columns}
+                        columns={displayColumns}
                         total={tableLogic.total}
                         isLoading={tableLogic.isLoading}
+                        rowKey={rowKey}
+                        pageNumber={tableLogic.pageNumber}
+                        pageSize={tableLogic.pageSize}
+                        onPageChange={tableLogic.setPage}
                         filters={props.filters}
+                        hideFilters={props.hideFilters}
                         searchButton={props.searchButton}
                         searchButtonText={props.searchButtonText}
                         searchButtonIcon={props.searchButtonIcon}
                         onApplyFilters={tableLogic.handleApplyFilters}
                         onResetFilters={tableLogic.handleResetFilters}
-                        handleRowClick={handleRowClickInternal}
+                        handleRowClick={hasRowClick ? onRowClick : undefined}
                         rowClassName={props.rowClassName}
-                        rowSelection={props.rowSelection || selection.rowSelection}
+                        rowSelection={props.rowSelection ?? builtInSelection?.rowSelection}
+                        onToggleSelect={props.rowSelection ? undefined : builtInSelection?.toggleSelection}
                         idColumnHidden={props.idColumnHidden}
-                        hideFilters={props.hideFilters}
                         title={props.title}
                         style={props.style}
+                        className={props.className}
                         hiddenPagination={props.hiddenPagination}
                         expandable={props.expandable}
                         disableScrollX={props.disableScrollX}
-                        pageNumber={tableLogic.pageNumber}
-                        pageSize={tableLogic.pageSize}
-                        onPageChange={handlePageChange}
-                        className={props.className}
-                        downloadButton={downloadButton}
-                        downloadPending={downloadPending}
+                        virtual={props.virtual}
                         showDownloadBtn={props.showDownloadBtn}
-                        onDownload={handleDownloadClick}
+                        downloadPending={downloadPending}
+                        onDownload={onDownload}
                         enableMobileCards={props.enableMobileCards}
                         mobileBreakpoint={props.mobileBreakpoint}
                         primaryColumnKey={props.primaryColumnKey}
                         hiddenInMobileColumns={props.hiddenInMobileColumns}
                         renderMobileCard={props.renderMobileCard}
                     />
-
                 )}
             </div>
 
-            {/* Модалка просмотра */}
             {enableViewModal && (
-                <ViewModal
-                    visible={modalVisible}
-                    onClose={handleCloseModal}
+                <ViewModal<RecordType>
+                    visible={selectedRow !== null}
+                    onClose={closeModal}
                     data={selectedRow}
                     title={props.viewModalTitle}
-                    columns={(props.viewModalColumns || props.columns) as ViewModalColumn<RecordType>[]}
+                    columns={modalColumns}
                 />
             )}
         </>
