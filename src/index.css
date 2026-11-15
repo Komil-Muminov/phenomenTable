@@ -5,7 +5,7 @@
 
 /* Токены для Tailwind: bg-brand, text-ink-muted и т.д. Синхронно с shared/config/theme.ts */
 @theme {
-    --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 
     --color-brand: #125a83;
     --color-brand-hover: #1872a6;

@@ -11,6 +11,9 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 
+// Inter локально: файлы шрифта идут в бандл, браузер грузит только нужные подмножества (latin, cyrillic…)
+import '@fontsource-variable/inter';
+
 import App from './App';
 import './index.css';
 

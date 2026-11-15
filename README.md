@@ -68,6 +68,8 @@ bulkActions={[
 Токены лежат в двух местах и должны совпадать: `shared/config/theme.ts` (antd `ConfigProvider`) и `@theme` в `index.css` (Tailwind: `bg-brand`, `text-ink-muted`, `border-line`…).
 Стили antd вынесены в `@layer antd` (`StyleProvider layer`), а он стоит перед `utilities`, поэтому Tailwind-классы перекрывают antd **без `!important`**.
 
+Шрифт Inter подключён локально (`@fontsource-variable/inter`) — внешних запросов к Google Fonts нет.
+
 ## TableActions
 
 ```tsx
