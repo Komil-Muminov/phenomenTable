@@ -54,6 +54,7 @@ src/
 - **Массовые действия** — `bulkActions` включает выделение и плавающую панель «Выбрано N» снизу (выделение помнит строки с других страниц).
 - **Закреплённая шапка** (`stickyHeader`, по умолчанию включена; число — отступ под фикс-хедер).
 - **Пустые состояния** различают «записей нет» и «ничего не найдено» (с кнопкой сброса фильтров).
+- **Отступ** `sm:p-4` вокруг таблицы по умолчанию; `padded={false}` — если отступы задаёт страница.
 - **Мобилка** (`< 768px`) — карточки вместо таблицы, фильтры в нижней шторке за кнопкой «Фильтры (n)».
 
 ```tsx
@@ -65,7 +66,11 @@ bulkActions={[
 
 ## Тема
 
-Токены лежат в двух местах и должны совпадать: `shared/config/theme.ts` (antd `ConfigProvider`) и `@theme` в `index.css` (Tailwind: `bg-brand`, `text-ink-muted`, `border-line`…).
+Все цвета и шрифт — в одном файле `shared/config/tokens.ts`. Оттуда их берут:
+- `theme.ts` → antd `ConfigProvider`;
+- `tailwind.config.ts` (подключён в `index.css` через `@config`) → утилиты `bg-brand`, `text-ink-muted`, `border-line`… и CSS-переменные `--color-*`, `--font-sans`.
+
+Старые переменные (`--text-primary`, `--background-secondary` и т.д.) сохранены для совместимости с исходными значениями (`LEGACY_CSS_VARS`, помечены `@deprecated`).
 Стили antd вынесены в `@layer antd` (`StyleProvider layer`), а он стоит перед `utilities`, поэтому Tailwind-классы перекрывают antd **без `!important`**.
 
 Шрифт Inter подключён локально (`@fontsource-variable/inter`) — внешних запросов к Google Fonts нет.

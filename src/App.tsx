@@ -78,6 +78,7 @@ function App() {
                 enableViewModal
                 viewModalTitle="Карточка доставки"
                 bulkActions={bulkActions}
+                padded={false}
             />
         </div>
     );

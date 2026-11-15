@@ -116,38 +116,41 @@ function SmartTableInner<RecordType, ResponseType>(props: SmartTableProps<Record
 
     return (
         <>
-            {props.customRender ? (
-                props.customRender(table.tableData, table.total)
-            ) : (
-                <TableContent<RecordType>
-                    tableData={table.tableData}
-                    columns={displayColumns}
-                    total={table.total}
-                    isLoading={table.isLoading}
-                    rowKey={rowKey}
-                    toolbar={toolbar}
-                    isFiltered={Object.keys(table.activeFilters).length > 0}
-                    pageNumber={table.pageNumber}
-                    pageSize={table.pageSize}
-                    onPageChange={table.setPage}
-                    handleRowClick={hasRowClick ? onRowClick : undefined}
-                    rowClassName={props.rowClassName}
-                    rowSelection={props.rowSelection ?? builtInSelection?.rowSelection}
-                    onToggleSelect={props.rowSelection ? undefined : builtInSelection?.toggleSelection}
-                    idColumnHidden={props.idColumnHidden}
-                    className={props.className}
-                    hiddenPagination={props.hiddenPagination}
-                    expandable={props.expandable}
-                    disableScrollX={props.disableScrollX}
-                    stickyHeader={props.stickyHeader}
-                    virtual={props.virtual}
-                    enableMobileCards={props.enableMobileCards}
-                    mobileBreakpoint={props.mobileBreakpoint}
-                    primaryColumnKey={props.primaryColumnKey}
-                    hiddenInMobileColumns={props.hiddenInMobileColumns}
-                    renderMobileCard={props.renderMobileCard}
-                />
-            )}
+            {/* Внутренний отступ как раньше (sm:p-4); padded={false} — если отступы задаёт страница */}
+            <div className={props.padded === false ? undefined : 'sm:p-4'}>
+                {props.customRender ? (
+                    props.customRender(table.tableData, table.total)
+                ) : (
+                    <TableContent<RecordType>
+                        tableData={table.tableData}
+                        columns={displayColumns}
+                        total={table.total}
+                        isLoading={table.isLoading}
+                        rowKey={rowKey}
+                        toolbar={toolbar}
+                        isFiltered={Object.keys(table.activeFilters).length > 0}
+                        pageNumber={table.pageNumber}
+                        pageSize={table.pageSize}
+                        onPageChange={table.setPage}
+                        handleRowClick={hasRowClick ? onRowClick : undefined}
+                        rowClassName={props.rowClassName}
+                        rowSelection={props.rowSelection ?? builtInSelection?.rowSelection}
+                        onToggleSelect={props.rowSelection ? undefined : builtInSelection?.toggleSelection}
+                        idColumnHidden={props.idColumnHidden}
+                        className={props.className}
+                        hiddenPagination={props.hiddenPagination}
+                        expandable={props.expandable}
+                        disableScrollX={props.disableScrollX}
+                        stickyHeader={props.stickyHeader}
+                        virtual={props.virtual}
+                        enableMobileCards={props.enableMobileCards}
+                        mobileBreakpoint={props.mobileBreakpoint}
+                        primaryColumnKey={props.primaryColumnKey}
+                        hiddenInMobileColumns={props.hiddenInMobileColumns}
+                        renderMobileCard={props.renderMobileCard}
+                    />
+                )}
+            </div>
 
             {hasBulk && (
                 <BulkActionsBar<RecordType>

@@ -104,6 +104,8 @@ export interface SmartTableProps<RecordType, ResponseType = IApiResponse<RecordT
     disableScrollX?: boolean;
     /** Закреплённая шапка таблицы (по умолчанию true). Число — отступ сверху, например под фикс-хедер */
     stickyHeader?: boolean | number;
+    /** Внутренний отступ sm:p-4 вокруг таблицы (по умолчанию true, как раньше) */
+    padded?: boolean;
     virtual?: boolean;
     customRender?: (items: RecordType[], total: number) => ReactNode;
 
