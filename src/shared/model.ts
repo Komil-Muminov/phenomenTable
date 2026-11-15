@@ -49,20 +49,94 @@ export interface IDownloadButton {
     };
 }
 
-// --- SmartTable ---
+// --- SmartTable: группы пропсов ---
 
 export type RowKeyGetter<RecordType> = string | ((record: RecordType) => Key);
+
+/** Блок можно включить флагом (`true` — настройки по умолчанию) или объектом с настройками */
+export type Toggle<Options> = boolean | Options;
+
+/** Как разбирать ответ сервера и готовить запрос */
+export interface SmartTableAdapter<RecordType, ResponseType> {
+    /** По умолчанию response.items */
+    getItems?: (response: ResponseType) => RecordType[];
+    /** По умолчанию response.total */
+    getTotal?: (response: ResponseType) => number;
+    /** Правка тела запроса перед отправкой */
+    transformRequest?: (params: Record<string, unknown>) => unknown;
+    /** Правка ответа до getItems/getTotal */
+    transformResponse?: (response: unknown) => ResponseType;
+}
+
+/** Выделение строк. Встроенное включается через onChange или bulkActions */
+export interface SmartTableSelection<RecordType> {
+    onChange?: (keys: Key[], rows: RecordType[]) => void;
+    /** Массовые действия: плавающая панель «Выбрано N» снизу */
+    bulkActions?: BulkActionItem<RecordType>[];
+    /** Полностью свой rowSelection antd (встроенный тогда не используется) */
+    rowSelection?: TableRowSelection<RecordType>;
+}
+
+/** Режим «по кнопке»: фильтры применяются только по клику на «Поиск» */
+export interface SmartTableSearchButton {
+    text?: string;
+    icon?: ReactNode;
+}
+
+/** Кнопка «Скачать»: POST с текущими фильтрами → ссылка на файл */
+export interface SmartTableDownload extends IDownloadButton {
+    /** Доп. поля в тело запроса */
+    payload?: object;
+}
+
+/** Внешний вид таблицы. Все флаги по умолчанию true */
+export interface SmartTableView {
+    /** Колонка ID слева */
+    idColumn?: boolean;
+    pagination?: boolean;
+    /** Горизонтальный скролл для широких таблиц */
+    scrollX?: boolean;
+    /** Закреплённая шапка. Число — отступ сверху, например под фикс-хедер */
+    stickyHeader?: boolean | number;
+    /** Внутренний отступ sm:p-4 вокруг таблицы */
+    padded?: boolean;
+    /** Виртуальный скролл antd для тысяч строк (по умолчанию false) */
+    virtual?: boolean;
+    /** Доп. классы для шапки с фильтрами */
+    toolbarClassName?: string;
+}
+
+/** Модалка просмотра записи по клику на строку */
+export interface SmartTableViewModal<RecordType> {
+    title?: string;
+    /** Свои колонки для модалки; по умолчанию — колонки таблицы */
+    columns?: TableColumnsType<RecordType>;
+    /** Скрывать пустые поля (по умолчанию true) */
+    hideEmpty?: boolean;
+}
+
+/** Мобильный вид — карточки вместо таблицы. Включён по умолчанию, `false` — выключить */
+export interface SmartTableMobile<RecordType> {
+    /** Ширина в px, ниже которой показываются карточки (по умолчанию 768) */
+    breakpoint?: number;
+    /** Колонка-заголовок карточки */
+    primaryColumnKey?: string;
+    /** Колонки, которые не показывать в карточке */
+    hiddenColumns?: string[];
+    /** Полностью своя карточка */
+    renderCard?: (record: RecordType, index: number) => ReactNode;
+}
+
+// --- SmartTable ---
 
 export interface SmartTableProps<RecordType, ResponseType = IApiResponse<RecordType>> {
     // Данные
     url?: string;
-    /** Статические данные. Если заданы — запрос по url не делается, пагинация локальная */
+    /** Статические данные. Если заданы — запроса нет, пагинация локальная */
     dataSource?: RecordType[];
+    /** Доп. поля в тело каждого запроса */
     queryParams?: Record<string, unknown>;
-    getItemsFromResponse?: (response: ResponseType) => RecordType[];
-    getTotalFromResponse?: (response: ResponseType) => number;
-    requestTransform?: (params: Record<string, unknown>) => unknown;
-    responseTransform?: (response: unknown) => ResponseType;
+    adapter?: SmartTableAdapter<RecordType, ResponseType>;
     /** Фильтрация статического dataSource по текущим (уже трансформированным) фильтрам */
     localFilter?: (record: RecordType, filters: Record<string, unknown>) => boolean;
     /** Префикс URL-параметров — нужен, если на странице несколько таблиц */
@@ -71,55 +145,24 @@ export interface SmartTableProps<RecordType, ResponseType = IApiResponse<RecordT
     // Колонки и строки
     columns: TableColumnsType<RecordType>;
     rowKey?: RowKeyGetter<RecordType>;
-    idColumnHidden?: boolean;
     rowClassName?: (record: RecordType, index: number) => string;
     expandable?: TableProps<RecordType>['expandable'];
-    handleRowClick?: (row: RecordType) => void;
+    onRowClick?: (row: RecordType) => void;
+    selection?: SmartTableSelection<RecordType>;
 
-    // Выделение: свой rowSelection или встроенный через handleSelectionChange
-    rowSelection?: TableRowSelection<RecordType>;
-    handleSelectionChange?: (keys: Key[], rows: RecordType[]) => void;
-    /** Массовые действия: включают выделение и плавающую панель снизу */
-    bulkActions?: BulkActionItem<RecordType>[];
-
-    // Фильтры
+    // Фильтры и действия шапки
     filters?: IFilterItem[];
+    /** Скрыть шапку с фильтрами (значения из URL при этом продолжают работать) */
     hideFilters?: boolean;
-    /** Режим «по кнопке»: фильтры применяются только по клику на «Поиск» */
-    searchButton?: boolean;
-    searchButtonText?: string;
-    searchButtonIcon?: ReactNode;
-
-    // Скачивание
-    downloadButton?: IDownloadButton;
-    downloadPayload?: object;
-    showDownloadBtn?: boolean;
+    searchButton?: Toggle<SmartTableSearchButton>;
+    download?: SmartTableDownload;
 
     // Вид
     title?: string;
     className?: string;
-    /** Доп. классы для шапки с фильтрами */
-    style?: string;
-    hiddenPagination?: boolean;
-    disableScrollX?: boolean;
-    /** Закреплённая шапка таблицы (по умолчанию true). Число — отступ сверху, например под фикс-хедер */
-    stickyHeader?: boolean | number;
-    /** Внутренний отступ sm:p-4 вокруг таблицы (по умолчанию true, как раньше) */
-    padded?: boolean;
-    virtual?: boolean;
+    view?: SmartTableView;
+    viewModal?: Toggle<SmartTableViewModal<RecordType>>;
+    mobile?: Toggle<SmartTableMobile<RecordType>>;
+    /** Полностью свой рендер вместо таблицы */
     customRender?: (items: RecordType[], total: number) => ReactNode;
-
-    // Модалка просмотра
-    enableViewModal?: boolean;
-    viewModalTitle?: string;
-    viewModalColumns?: TableColumnsType<RecordType>;
-    /** Скрывать в модалке пустые поля (по умолчанию true) */
-    viewModalHideEmpty?: boolean;
-
-    // Мобильный вид (карточки)
-    enableMobileCards?: boolean;
-    mobileBreakpoint?: number;
-    primaryColumnKey?: string;
-    hiddenInMobileColumns?: string[];
-    renderMobileCard?: (record: RecordType, index: number) => ReactNode;
 }

@@ -33,6 +33,8 @@ src/
 
 ## SmartTable
 
+Минимум — `columns` и источник данных (`url` или `dataSource`). Всё остальное включается по мере надобности.
+
 ```tsx
 <SmartTable<Order>
     url={ApiRoutes.ORDERS}            // POST { pageInfo, filters, ...queryParams } → { items, total }
@@ -41,28 +43,66 @@ src/
         { type: FilterType.INPUT, name: 'search', placeholder: 'Поиск' },
         { type: FilterType.DATE_RANGE, name: 'period' }, // в URL: periodFrom / periodTo
     ]}
-    enableViewModal
-    handleSelectionChange={(keys, rows) => …}  // включает чекбоксы
+    viewModal                         // модалка просмотра по клику на строку
 />
 ```
 
-- **Фильтры и пагинация живут в URL** (без засорения истории). Несколько таблиц на странице — задайте `paramsScope`.
-- **`dataSource`** — статические данные: запроса нет, пагинация локальная, фильтрация через `localFilter`.
-- **`searchButton`** — фильтры применяются по кнопке «Поиск».
+### Пропсы
+
+| Проп | Что делает |
+| --- | --- |
+| `url` / `dataSource` | Источник: запрос к API или статические данные (локальная пагинация) |
+| `columns` | Колонки antd — **единственный обязательный** |
+| `queryParams` | Доп. поля в тело каждого запроса |
+| `adapter` | `{ getItems, getTotal, transformRequest, transformResponse }` — если ответ не `{ items, total }` |
+| `localFilter` | Фильтрация `dataSource` текущими фильтрами |
+| `paramsScope` | Префикс URL-параметров для нескольких таблиц на странице |
+| `rowKey`, `rowClassName`, `expandable`, `onRowClick` | Строки |
+| `selection` | `{ onChange, bulkActions, rowSelection }` — выделение и массовые действия |
+| `filters`, `hideFilters` | Фильтры в шапке |
+| `searchButton` | `true` или `{ text, icon }` — фильтры применяются по кнопке «Поиск» |
+| `download` | `{ url, fileName, messages, payload }` — кнопка «Скачать» |
+| `title`, `className` | Заголовок и класс таблицы |
+| `view` | `{ idColumn, pagination, scrollX, stickyHeader, padded, virtual, toolbarClassName }` |
+| `viewModal` | `true` или `{ title, columns, hideEmpty }` |
+| `mobile` | Карточки на мобилке (включены): `false` или `{ breakpoint, primaryColumnKey, hiddenColumns, renderCard }` |
+| `customRender` | Полностью свой рендер вместо таблицы |
+
+Флаги в `view` положительные и по умолчанию `true` (кроме `virtual`): чтобы скрыть колонку ID — `view={{ idColumn: false }}`.
+
+### Поведение
+
+- **Фильтры и пагинация живут в URL** (без засорения истории).
 - **Даты** ISO-формата в колонках без `render` отображаются как `дд.мм.гггг`; в обработчики уходят исходные данные.
 - **Чипсы активных фильтров** под тулбаром — крестиком снимается один фильтр, «Сбросить все» — все.
-- **Массовые действия** — `bulkActions` включает выделение и плавающую панель «Выбрано N» снизу (выделение помнит строки с других страниц).
-- **Закреплённая шапка** (`stickyHeader`, по умолчанию включена; число — отступ под фикс-хедер).
+- **Массовые действия** — плавающая панель «Выбрано N» снизу; выделение помнит строки с других страниц.
+- **Закреплённая шапка** и отступ `sm:p-4` по умолчанию (`view.stickyHeader`, `view.padded`).
 - **Пустые состояния** различают «записей нет» и «ничего не найдено» (с кнопкой сброса фильтров).
-- **Отступ** `sm:p-4` вокруг таблицы по умолчанию; `padded={false}` — если отступы задаёт страница.
 - **Мобилка** (`< 768px`) — карточки вместо таблицы, фильтры в нижней шторке за кнопкой «Фильтры (n)».
 
 ```tsx
-bulkActions={[
-    { key: 'export', label: 'Выгрузить', keepSelection: true, onClick: (rows) => exportRows(rows) },
-    { key: 'delete', label: 'Удалить', danger: true, confirm: { title: 'Удалить выбранные?' }, onClick: removeRows },
-]}
+selection={{
+    bulkActions: [
+        { key: 'export', label: 'Выгрузить', keepSelection: true, onClick: (rows) => exportRows(rows) },
+        { key: 'delete', label: 'Удалить', danger: true, confirm: { title: 'Удалить выбранные?' }, onClick: removeRows },
+    ],
+}}
 ```
+
+### Миграция со старых пропсов
+
+| Было | Стало |
+| --- | --- |
+| `getItemsFromResponse`, `getTotalFromResponse`, `requestTransform`, `responseTransform` | `adapter={{ getItems, getTotal, transformRequest, transformResponse }}` |
+| `handleRowClick` | `onRowClick` |
+| `rowSelection`, `handleSelectionChange`, `bulkActions` | `selection={{ rowSelection, onChange, bulkActions }}` |
+| `searchButton`, `searchButtonText`, `searchButtonIcon` | `searchButton={{ text, icon }}` (или просто `searchButton`) |
+| `downloadButton`, `downloadPayload`, `showDownloadBtn` | `download={{ ...downloadButton, payload }}` — кнопка видна, если `download` задан |
+| `idColumnHidden`, `hiddenPagination`, `disableScrollX` | `view={{ idColumn: false, pagination: false, scrollX: false }}` |
+| `stickyHeader`, `padded`, `virtual`, `style` | `view={{ stickyHeader, padded, virtual, toolbarClassName }}` |
+| `enableViewModal`, `viewModalTitle`, `viewModalColumns`, `viewModalHideEmpty` | `viewModal={{ title, columns, hideEmpty }}` |
+| `enableMobileCards={false}` | `mobile={false}` |
+| `mobileBreakpoint`, `primaryColumnKey`, `hiddenInMobileColumns`, `renderMobileCard` | `mobile={{ breakpoint, primaryColumnKey, hiddenColumns, renderCard }}` |
 
 ## Тема
 

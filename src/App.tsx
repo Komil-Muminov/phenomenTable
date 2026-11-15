@@ -74,11 +74,9 @@ function App() {
                 columns={columns}
                 filters={DEMO_FILTERS}
                 localFilter={demoLocalFilter}
-                idColumnHidden={false}
-                enableViewModal
-                viewModalTitle="Карточка доставки"
-                bulkActions={bulkActions}
-                padded={false}
+                selection={{ bulkActions }}
+                viewModal={{ title: 'Карточка доставки' }}
+                view={{ padded: false }}
             />
         </div>
     );

@@ -2,7 +2,6 @@ import { COLORS, FONT_FAMILY } from './tokens';
 
 import type { ThemeConfig } from 'antd';
 
-
 export { COLORS, FONT_FAMILY } from './tokens';
 
 export const appTheme: ThemeConfig = {

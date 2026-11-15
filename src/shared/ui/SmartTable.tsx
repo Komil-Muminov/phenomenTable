@@ -3,11 +3,11 @@ import { withDateFormatting } from '@shared/utils';
 import { useCallback, useMemo, useState } from 'react';
 
 import { BulkActionsBar } from './BulkActionsBar';
-import { useSmartTable, useTableSelection } from './lib';
+import { resolveToggle, useSmartTable, useTableSelection } from './lib';
 import { TableContent, type TableContentToolbar } from './TableContent';
 import { ViewModal } from './ViewModal';
 
-import type { SmartTableProps } from '@shared/model';
+import type { SmartTableMobile, SmartTableProps, SmartTableSearchButton, SmartTableViewModal } from '@shared/model';
 
 /**
  * Таблица «под ключ»: загрузка, фильтры в URL, пагинация, выделение и массовые действия,
@@ -25,7 +25,12 @@ export function SmartTable<RecordType = Record<string, unknown>, ResponseType = 
 }
 
 function SmartTableInner<RecordType, ResponseType>(props: SmartTableProps<RecordType, ResponseType>) {
-    const { columns, rowKey = 'id', downloadButton, downloadPayload, enableViewModal = false, handleRowClick } = props;
+    const { columns, rowKey = 'id', download, onRowClick, view = {}, adapter = {}, selection: selectionProps } = props;
+
+    // Флаг-или-объект → объект настроек (или undefined, если блок выключен)
+    const search = resolveToggle<SmartTableSearchButton>(props.searchButton);
+    const viewModal = resolveToggle<SmartTableViewModal<RecordType>>(props.viewModal);
+    const mobile = resolveToggle<SmartTableMobile<RecordType>>(props.mobile, true);
 
     const [selectedRow, setSelectedRow] = useState<RecordType | null>(null);
 
@@ -34,30 +39,37 @@ function SmartTableInner<RecordType, ResponseType>(props: SmartTableProps<Record
         queryParams: props.queryParams,
         filters: props.filters,
         dataSource: props.dataSource,
-        getItemsFromResponse: props.getItemsFromResponse,
-        getTotalFromResponse: props.getTotalFromResponse,
-        searchButton: props.searchButton,
+        getItemsFromResponse: adapter.getItems,
+        getTotalFromResponse: adapter.getTotal,
+        requestTransform: adapter.transformRequest,
+        responseTransform: adapter.transformResponse,
+        searchButton: Boolean(search),
         localFilter: props.localFilter,
-        requestTransform: props.requestTransform,
-        responseTransform: props.responseTransform,
     });
 
     // Встроенное выделение включается, только если о нём попросили
     const selection = useTableSelection<RecordType>({
         data: table.tableData,
         rowKey,
-        onSelectionChange: props.handleSelectionChange,
+        onSelectionChange: selectionProps?.onChange,
     });
-    const hasBulk = Boolean(props.bulkActions?.length);
-    const builtInSelection = props.handleSelectionChange || hasBulk ? selection : undefined;
+    const bulkActions = selectionProps?.bulkActions;
+    const hasBulk = Boolean(bulkActions?.length);
+    const builtInSelection = selectionProps?.onChange || hasBulk ? selection : undefined;
+    const customRowSelection = selectionProps?.rowSelection;
 
-    const { handleDownload, downloadPending } = useTableDownload({ downloadButton });
+    const { handleDownload, downloadPending } = useTableDownload({ downloadButton: download });
     const { transformedFilters } = table;
+    const downloadPayload = download?.payload;
 
     const onDownload = useCallback(
         () => handleDownload(transformedFilters, downloadPayload),
         [handleDownload, transformedFilters, downloadPayload],
     );
+
+    const searchText = search?.text;
+    const searchIcon = search?.icon;
+    const isSearchMode = Boolean(search);
 
     const toolbar = useMemo<TableContentToolbar | undefined>(() => {
         if (!props.filters || props.hideFilters) return undefined;
@@ -70,11 +82,11 @@ function SmartTableInner<RecordType, ResponseType>(props: SmartTableProps<Record
             onResetFilters: table.handleResetFilters,
             onRemoveFilter: table.handleRemoveFilter,
             title: props.title,
-            className: props.style,
-            searchButton: props.searchButton,
-            searchButtonText: props.searchButtonText,
-            searchButtonIcon: props.searchButtonIcon,
-            showDownloadBtn: props.showDownloadBtn,
+            className: view.toolbarClassName,
+            searchButton: isSearchMode,
+            searchButtonText: searchText,
+            searchButtonIcon: searchIcon,
+            showDownloadBtn: Boolean(download),
             downloadPending,
             onDownload,
         };
@@ -82,11 +94,11 @@ function SmartTableInner<RecordType, ResponseType>(props: SmartTableProps<Record
         props.filters,
         props.hideFilters,
         props.title,
-        props.style,
-        props.searchButton,
-        props.searchButtonText,
-        props.searchButtonIcon,
-        props.showDownloadBtn,
+        view.toolbarClassName,
+        isSearchMode,
+        searchText,
+        searchIcon,
+        download,
         table.filterValues,
         table.activeFilters,
         table.hasPendingFilters,
@@ -99,25 +111,27 @@ function SmartTableInner<RecordType, ResponseType>(props: SmartTableProps<Record
 
     // Даты форматируем только при отображении — в обработчики идут исходные данные
     const displayColumns = useMemo(() => withDateFormatting(columns), [columns]);
+    const modalSourceColumns = viewModal?.columns;
     const modalColumns = useMemo(
-        () => (props.viewModalColumns ? withDateFormatting(props.viewModalColumns) : displayColumns),
-        [props.viewModalColumns, displayColumns],
+        () => (modalSourceColumns ? withDateFormatting(modalSourceColumns) : displayColumns),
+        [modalSourceColumns, displayColumns],
     );
 
-    const onRowClick = useCallback(
+    const hasViewModal = Boolean(viewModal);
+    const handleRowClick = useCallback(
         (row: RecordType) => {
-            if (enableViewModal) setSelectedRow(row);
-            handleRowClick?.(row);
+            if (hasViewModal) setSelectedRow(row);
+            onRowClick?.(row);
         },
-        [enableViewModal, handleRowClick],
+        [hasViewModal, onRowClick],
     );
-    const hasRowClick = enableViewModal || Boolean(handleRowClick);
+    const hasRowClick = hasViewModal || Boolean(onRowClick);
     const closeModal = useCallback(() => setSelectedRow(null), []);
 
     return (
         <>
-            {/* Внутренний отступ как раньше (sm:p-4); padded={false} — если отступы задаёт страница */}
-            <div className={props.padded === false ? undefined : 'sm:p-4'}>
+            {/* Внутренний отступ sm:p-4; view.padded=false — если отступы задаёт страница */}
+            <div className={view.padded === false ? undefined : 'sm:p-4'}>
                 {props.customRender ? (
                     props.customRender(table.tableData, table.total)
                 ) : (
@@ -132,43 +146,43 @@ function SmartTableInner<RecordType, ResponseType>(props: SmartTableProps<Record
                         pageNumber={table.pageNumber}
                         pageSize={table.pageSize}
                         onPageChange={table.setPage}
-                        handleRowClick={hasRowClick ? onRowClick : undefined}
+                        handleRowClick={hasRowClick ? handleRowClick : undefined}
                         rowClassName={props.rowClassName}
-                        rowSelection={props.rowSelection ?? builtInSelection?.rowSelection}
-                        onToggleSelect={props.rowSelection ? undefined : builtInSelection?.toggleSelection}
-                        idColumnHidden={props.idColumnHidden}
+                        rowSelection={customRowSelection ?? builtInSelection?.rowSelection}
+                        onToggleSelect={customRowSelection ? undefined : builtInSelection?.toggleSelection}
+                        idColumnHidden={view.idColumn === false}
                         className={props.className}
-                        hiddenPagination={props.hiddenPagination}
+                        hiddenPagination={view.pagination === false}
                         expandable={props.expandable}
-                        disableScrollX={props.disableScrollX}
-                        stickyHeader={props.stickyHeader}
-                        virtual={props.virtual}
-                        enableMobileCards={props.enableMobileCards}
-                        mobileBreakpoint={props.mobileBreakpoint}
-                        primaryColumnKey={props.primaryColumnKey}
-                        hiddenInMobileColumns={props.hiddenInMobileColumns}
-                        renderMobileCard={props.renderMobileCard}
+                        disableScrollX={view.scrollX === false}
+                        stickyHeader={view.stickyHeader}
+                        virtual={view.virtual}
+                        enableMobileCards={Boolean(mobile)}
+                        mobileBreakpoint={mobile?.breakpoint}
+                        primaryColumnKey={mobile?.primaryColumnKey}
+                        hiddenInMobileColumns={mobile?.hiddenColumns}
+                        renderMobileCard={mobile?.renderCard}
                     />
                 )}
             </div>
 
-            {hasBulk && (
+            {hasBulk && bulkActions && (
                 <BulkActionsBar<RecordType>
-                    actions={props.bulkActions!}
+                    actions={bulkActions}
                     selectedRows={selection.selectedRows}
                     selectedCount={selection.selectedCount}
                     onClear={selection.deselectAll}
                 />
             )}
 
-            {enableViewModal && (
+            {viewModal && (
                 <ViewModal<RecordType>
                     visible={selectedRow !== null}
                     onClose={closeModal}
                     data={selectedRow}
-                    title={props.viewModalTitle}
+                    title={viewModal.title}
                     columns={modalColumns}
-                    hideEmpty={props.viewModalHideEmpty}
+                    hideEmpty={viewModal.hideEmpty}
                 />
             )}
         </>
